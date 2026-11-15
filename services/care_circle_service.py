@@ -794,3 +794,15 @@ def check_permission(elderly_user_id: int, user: dict, required_level: str = "vi
         if required_level == "viewer":
             return True
         return row["permission_level"] == "editor"
+
+
+def add_care_circle_member(elderly_user_id: int, member_user_id: int, relationship: str = "Caregiver", permission_level: str = "editor", connection_role: str = "caregiver") -> bool:
+    """Compatibility helper: directly adds or updates an active care circle member connection."""
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT OR REPLACE INTO care_circle
+               (elderly_user_id, member_user_id, relationship, permission_level, connection_role, status)
+               VALUES (?, ?, ?, ?, ?, 'active')""",
+            (elderly_user_id, member_user_id, relationship, permission_level, connection_role),
+        )
+        return True

@@ -24,7 +24,6 @@ from services.appointment_service import (
 from services.health_service import get_health_readings, add_health_reading, get_latest_vitals
 from services.care_circle_service import (
     get_care_circle_members,
-    add_care_circle_member,
     get_elderly_profile,
     update_elderly_profile,
 )
