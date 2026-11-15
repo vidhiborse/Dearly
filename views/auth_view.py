@@ -1,5 +1,6 @@
 import streamlit as st
 from services.auth_service import authenticate
+from services.user_service import register_user
 from views.common import render_clinical_disclaimer
 
 def render_auth_view():
@@ -11,8 +12,9 @@ def render_auth_view():
     </div>
     """, unsafe_allow_html=True)
 
-    tab_signin, tab_about = st.tabs(["Sign In", "About the Platform"])
+    tab_signin, tab_register, tab_about = st.tabs(["Sign In", "Create Account", "About the Platform"])
 
+    # 1. SIGN IN TAB
     with tab_signin:
         col_demo, col_form = st.columns([1.1, 1], gap="large")
 
@@ -69,8 +71,73 @@ def render_auth_view():
                             st.session_state.current_page = "Home" if user["role"] == "elderly" else "Overview"
                             st.rerun()
                         else:
-                            st.error("Invalid credentials. Please verify your email or password.")
+                            st.error("Invalid email or password. Please verify your credentials.")
 
+    # 2. CREATE ACCOUNT TAB
+    with tab_register:
+        reg_c1, reg_c2 = st.columns([1.2, 1], gap="large")
+
+        with reg_c1:
+            with st.container(border=True):
+                st.markdown("<h2 style='margin: 0 0 4px 0; font-size: 20px; color: #234B70;'>Register for Dearly</h2>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 16px;'>Create a new account as an older adult, family member, or caregiver.</p>", unsafe_allow_html=True)
+
+                with st.form("register_user_form"):
+                    reg_name = st.text_input("Full Name", placeholder="e.g. Kamala Rao")
+                    reg_email = st.text_input("Email Address", placeholder="e.g. kamala.rao@example.com")
+                    reg_phone = st.text_input("Phone Number", placeholder="e.g. +91 98200 99887")
+                    
+                    reg_role = st.selectbox(
+                        "Your Account Role",
+                        options=["elderly", "caregiver", "family"],
+                        format_func=lambda r: {
+                            "elderly": "Elderly Individual (Managing daily routines)",
+                            "caregiver": "Primary Caregiver (Coordinating care)",
+                            "family": "Family Member (Staying informed)",
+                        }.get(r, r),
+                    )
+
+                    col_p1, col_p2 = st.columns(2)
+                    with col_p1:
+                        reg_pw = st.text_input("Create Password (min. 6 characters)", type="password")
+                    with col_p2:
+                        reg_confirm_pw = st.text_input("Confirm Password", type="password")
+
+                    st.caption("Your password will be encrypted using bcrypt. We never store plain-text passwords.")
+                    st.write("")
+                    submit_reg = st.form_submit_button("Create Account", use_container_width=True, type="primary")
+
+                if submit_reg:
+                    success, res = register_user(
+                        name=reg_name,
+                        email=reg_email,
+                        phone=reg_phone,
+                        password=reg_pw,
+                        confirm_password=reg_confirm_pw,
+                        role=reg_role,
+                    )
+                    if success:
+                        st.session_state.user = res
+                        st.session_state.selected_ward_id = res["id"] if res["role"] == "elderly" else None
+                        st.session_state.current_page = "Home" if res["role"] == "elderly" else "Overview"
+                        st.success(f"Welcome to Dearly, {res['name']}! Your account has been created.")
+                        st.rerun()
+                    else:
+                        st.error(res)
+
+        with reg_c2:
+            with st.container(border=True):
+                st.markdown("<h3 style='margin: 0 0 8px 0; font-size: 18px; color: #234B70;'>Role Guidance</h3>", unsafe_allow_html=True)
+                st.markdown("""
+                - **Elderly Individual**:  
+                  Access an accessible, simplified interface designed for tracking daily medicines, contacting caregivers, and scheduling appointments.
+                - **Caregiver**:  
+                  Manage care routines, view adherence metrics, coordinate appointments, and log vitals for linked older adults.
+                - **Family Member**:  
+                  Stay connected and receive reassurance through daily care briefings and adherence summaries.
+                """)
+
+    # 3. ABOUT TAB
     with tab_about:
         st.markdown("""
         ### Shared Healthcare Ecosystem

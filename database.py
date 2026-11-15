@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+import bcrypt
 from pathlib import Path
 from datetime import datetime, date, timedelta
 
@@ -14,8 +15,18 @@ def get_connection():
     return conn
 
 def hash_password(password: str) -> str:
-    # SHA-256 for hackathon demonstration. Replace with bcrypt/argon2 in production.
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    # Use bcrypt with standard work factor 12
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        if hashed_password.startswith("$2a$") or hashed_password.startswith("$2b$") or hashed_password.startswith("$2y$"):
+            return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+        # Fallback for existing prototype SHA-256 hashes
+        return hashlib.sha256(plain_password.encode("utf-8")).hexdigest() == hashed_password
+    except Exception:
+        return False
 
 def ensure_column(conn, table, col_name, col_type):
     info = conn.execute(f"PRAGMA table_info({table})").fetchall()
@@ -162,6 +173,7 @@ def init_db():
         """)
 
         ensure_column(conn, "users", "phone", "TEXT")
+        ensure_column(conn, "users", "updated_at", "TEXT")
         ensure_column(conn, "elderly_profiles", "blood_group", "TEXT")
         ensure_column(conn, "elderly_profiles", "allergies", "TEXT")
         ensure_column(conn, "elderly_profiles", "primary_physician", "TEXT")
@@ -339,7 +351,11 @@ def create_demo_users():
 def authenticate_user(email: str, password: str):
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT id, name, email, role, phone FROM users WHERE email=? AND password_hash=?",
-            (email.strip().lower(), hash_password(password)),
+            "SELECT id, name, email, password_hash, role, phone, created_at FROM users WHERE LOWER(email) = LOWER(?)",
+            (email.strip(),),
         ).fetchone()
-        return dict(row) if row else None
+        if row and verify_password(password, row["password_hash"]):
+            user = dict(row)
+            user.pop("password_hash", None)
+            return user
+        return None

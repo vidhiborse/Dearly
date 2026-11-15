@@ -1,18 +1,15 @@
 import sqlite3
-from database import get_connection, hash_password
+from database import get_connection, authenticate_user
+from services.permissions import can_access_elderly_record
 
 def authenticate(email: str, password: str):
-    with get_connection() as conn:
-        user = conn.execute(
-            "SELECT id, name, email, role, phone FROM users WHERE email = ? AND password_hash = ?",
-            (email.strip().lower(), hash_password(password)),
-        ).fetchone()
-        return dict(user) if user else None
+    """Authenticates email and password using secure bcrypt hash verification."""
+    return authenticate_user(email, password)
 
 def get_user_by_id(user_id: int):
     with get_connection() as conn:
         user = conn.execute(
-            "SELECT id, name, email, role, phone FROM users WHERE id = ?",
+            "SELECT id, name, email, role, phone, created_at, updated_at FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         return dict(user) if user else None
@@ -20,12 +17,13 @@ def get_user_by_id(user_id: int):
 def get_accessible_elderly_wards(user: dict):
     """
     Returns list of elderly users that the current user is permitted to view/manage.
-    For elderly: returns [self]
-    For caregiver/family: returns members linked via care_circle
+    Strictly enforces authorization:
+    - Elderly user: returns only self.
+    - Caregiver / Family: returns only members linked in care_circle.
     """
     if not user:
         return []
-    
+
     with get_connection() as conn:
         if user["role"] == "elderly":
             elderly = conn.execute(

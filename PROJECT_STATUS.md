@@ -1,6 +1,6 @@
 # Dearly — Project Status
 
-**Current Phase:** Phase 1 (Professional UI/UX Foundation & Accessible Role Shell)  
+**Current Phase:** Phase 2 (Authentication & User Management)  
 **Status:** Completed & Verified  
 **Date:** November 15, 2026  
 **Repository:** [github.com/vidhiborse/Dearly](https://github.com/vidhiborse/Dearly)
@@ -9,69 +9,80 @@
 
 ## 1. Executive Summary
 
-Phase 1 establishes the professional, accessible, and clinical foundation for **Dearly** (*Care that stays close.*). Rather than building a superficial dashboard, Phase 1 delivers a strictly structured, role-segregated healthcare application shell compliant with WCAG AAA accessibility standards for older adults, caregivers, and family members.
-
-The application shell is built on Streamlit with scoped CSS, SQLite relational persistence, and parameterized data access services.
+Phase 2 introduces a complete, secure, role-enforced **Authentication and User Management module** for Dearly (*Care that stays close.*). The system provides multi-role registration, bcrypt password hashing with automatic salt generation, role-based access control (RBAC) enforced both in the UI and data layer, profile editing, and session lifecycle management.
 
 ---
 
-## 2. Completed in Phase 1
+## 2. Completed in Phase 2
 
-### A. Design System & Brand Foundation
-- Defined and implemented the complete Dearly design system in [DESIGN.md](file:///d:/Dearly/DESIGN.md) and [views/common.py](file:///d:/Dearly/views/common.py).
-- Enforced clean light healthcare palette (`#234B70` primary, `#FFFFFF` surfaces, `#F5F8FC` canvas, `#DFE6EE` borders).
-- Enforced 18px body text and 20px+ instruction scale with `Plus Jakarta Sans` typography.
-- Eliminated all decorative emojis, gradients, glowing effects, and generic SaaS templates.
-- Locked Streamlit to light mode in [.streamlit/config.toml](file:///d:/Dearly/.streamlit/config.toml) to avoid contrast inversion bugs.
+### A. Multi-Role User Registration
+- Implemented registration for all three roles: `elderly`, `caregiver`, and `family` in [services/user_service.py](file:///d:/Dearly/services/user_service.py).
+- Strict input validation:
+  - Full name (minimum 2 characters, trimmed).
+  - Email format validation via regex.
+  - Case-insensitive duplicate email detection.
+  - Phone validation (minimum 7 digits).
+  - Password strength validation (minimum 6 characters).
+  - Password and confirmation matching.
+  - Role validation restricted to `('elderly', 'caregiver', 'family')`.
+- Auto-initialization of `elderly_profiles` row upon elderly registration.
 
-### B. Login & Authentication Experience
-- Clean, accessible sign-in view in [views/auth_view.py](file:///d:/Dearly/views/auth_view.py).
-- Confidential credential handling: no public disclosure of passwords in the UI.
-- Pre-configured role sign-in shortcuts for automated and manual evaluation testing.
-- Reliable session state management preserving role, selected ward, and navigation context.
+### B. Secure Login & Password Hashing
+- Integrated `bcrypt` (work factor 12) for all new registrations and password verifications.
+- Zero plaintext passwords stored or logged.
+- Backward compatibility fallback for legacy prototype SHA-256 hashes in [database.py](file:///d:/Dearly/database.py).
+- Public login screen confidentiality: no plaintext passwords exposed in public UI elements.
+- Clean session persistence in Streamlit session state (`user`, `selected_ward_id`, `current_page`).
+- Complete logout functionality that purges session attributes and re-routes to unauthenticated view.
 
-### C. Role-Based Navigation & Dashboards
-Implemented 3 distinct navigation shells and dashboards matching specifications:
+### C. Backend Role-Based Access Control (RBAC)
+- Implemented dedicated authorization guard in [services/permissions.py](file:///d:/Dearly/services/permissions.py):
+  - **Elderly Users**: Can only view and update their own care record and personal profile.
+  - **Caregivers**: Can only access elderly records explicitly linked to them via `care_circle` with `editor` permissions.
+  - **Family Members**: Can only view care information for elderly relatives linked via `care_circle` with read-only (`viewer`) rights.
+  - **Cross-Patient Isolation**: Unrelated users are rejected at both UI routing and backend data access levels.
 
-1. **Elderly User Shell** ([views/elderly_view.py](file:///d:/Dearly/views/elderly_view.py)):
-   - Navigation: `Home`, `My Medicines`, `Appointments`, `My Health`, `Emergency Contacts`.
-   - `Home` Dashboard: Personalized greeting, today's medication overview, next scheduled dose with large action buttons, upcoming doctor appointment, primary caregiver card, and emergency assistance access.
-   - Simplified high-contrast single-column cards with no floating buttons.
+### D. User Profile Management
+- Created dedicated profile view in [views/profile_view.py](file:///d:/Dearly/views/profile_view.py) accessible from all role shells via `"My Profile"`.
+- Allows viewing email and system-assigned role (read-only).
+- Allows updating full name and phone number with instant session state reflection and SQLite persistence.
+- Prevents role escalation or alteration through user profile editing.
 
-2. **Caregiver Shell** ([views/caregiver_view.py](file:///d:/Dearly/views/caregiver_view.py)):
-   - Navigation: `Overview`, `Elderly Profiles`, `Medication Monitoring`, `Appointments`, `Health Records`, `Activity History`.
-   - `Overview` Dashboard: Ward switcher, 7-day adherence %, unconfirmed/past due dose alerts, upcoming appointments, and recent activity log.
-   - Real-time escalation banners for unconfirmed doses.
-
-3. **Family Member Shell** ([views/family_view.py](file:///d:/Dearly/views/family_view.py)):
-   - Navigation: `Overview`, `Care Updates`, `Medicines`, `Appointments`, `Health Summary`.
-   - `Overview` Dashboard: Care status reassurance card, adherence metric, next doctor appointment, primary caregiver contact, and daily routine status.
-   - Observability views with adherence bar charts and fasting blood sugar trendlines.
-
-### D. Architectural Modularity
-- Decoupled `services/` layer: `auth_service`, `medication_service`, `appointment_service`, `health_service`, `care_circle_service`, `activity_service`, `emergency_service`, `summary_service`.
-- Decoupled `views/` layer: `common`, `auth_view`, `elderly_view`, `caregiver_view`, `family_view`.
-- Data persistence in SQLite (`data/dearly.db`) with relational integrity, foreign keys, and indexes.
+### E. Database Enhancements
+- Added `updated_at` column migration to `users` table.
+- Parameterized all SQL statements to eliminate injection risks.
+- Maintained idempotent database initialization (`init_db()`).
 
 ---
 
 ## 3. Test Evidence
 
-Automated test suite [test_app.py](file:///d:/Dearly/test_app.py) passes with **100% success**:
-- `test_authentication_demo_users`: Passed.
-- `test_accessible_wards`: Passed.
-- `test_medication_schedule_and_dose_logging`: Passed.
-- `test_appointment_management`: Passed.
-- `test_health_vitals`: Passed.
-- `test_care_circle_and_permissions`: Passed.
-- `test_emergency_alert_flow`: Passed.
-- `test_ai_daily_summary`: Passed.
+Executed 15-case Phase 2 test suite in [test_phase2_auth.py](file:///d:/Dearly/test_phase2_auth.py) and 8-case regression suite in [test_app.py](file:///d:/Dearly/test_app.py):
+
+| Test ID | Case Description | Result |
+|---|---|---|
+| `test_01` | Register a new elderly user with auto profile initialization | PASSED |
+| `test_02` | Register a new caregiver user | PASSED |
+| `test_03` | Register a new family member user | PASSED |
+| `test_04` | Reject duplicate email registration | PASSED |
+| `test_05` | Reject invalid email formats | PASSED |
+| `test_06` | Reject mismatched passwords | PASSED |
+| `test_07` | Successfully log in with valid credentials | PASSED |
+| `test_08` | Reject incorrect passwords | PASSED |
+| `test_09` | Prevent access without authentication | PASSED |
+| `test_10` | Verify role-based page whitelist access | PASSED |
+| `test_11` | Verify users cannot access unrelated elderly profiles | PASSED |
+| `test_12` | Update and save personal profile in SQLite | PASSED |
+| `test_13` | Log out and verify session state is cleared | PASSED |
+| `test_14` | Verify protected pages cannot be accessed after logout | PASSED |
+| `test_15` | Restart application and verify accounts persist | PASSED |
+
+**Total Suite Result:** 23 tests executed, 23 passed, 0 failed.
 
 ---
 
-## 4. Known Limitations & Roadmap
+## 4. Known Limitations & Pending Features
 
-- **Password Hashing**: Prototype uses SHA-256 for demo seeding; production migration will adopt Argon2/bcrypt.
-- **Hardware Integration**: Vitals currently recorded via structured forms; BLE pairing for hardware monitors planned in future phases.
-- **Push Notifications**: Emergency and missed-dose notifications are currently simulated in SQLite audit logs (`simulated_reminders`).
-- **Phase 2 Target**: Advanced medication interaction warnings, caregiver shift handover logs, and prescription document parsing.
+- **Email Verification**: Email confirmations are simulated in local prototypes without an active SMTP gateway.
+- **Password Reset Flow**: Self-service forgot-password token dispatch scheduled for future cloud deployment phase.
+- **Strict Scope Adherence**: Medication management, real-time push reminders, doctor appointments, and AI assistant modules remain scheduled for subsequent phases.

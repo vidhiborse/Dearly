@@ -5,6 +5,8 @@ from views.auth_view import render_auth_view
 from views.elderly_view import render_elderly_view
 from views.caregiver_view import render_caregiver_view
 from views.family_view import render_family_view
+from views.profile_view import render_profile_view
+from services.permissions import can_view_page
 
 # Initialize database schema and demo data
 init_db()
@@ -20,13 +22,13 @@ st.set_page_config(
 # Apply accessible design system styles
 inject_custom_styles()
 
-# Initialize session state
+# Initialize session state securely
 if "user" not in st.session_state:
     st.session_state.user = None
 if "current_page" not in st.session_state:
     st.session_state.current_page = None
 
-# Sidebar navigation & role management
+# Sidebar branding
 st.sidebar.markdown("""
 <div style="padding: 4px 0 16px 0;">
     <h2 style="margin: 0; font-size: 24px; color: #234B70; font-weight: 700;">Dearly</h2>
@@ -34,9 +36,10 @@ st.sidebar.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Protected Route Guard
 if st.session_state.user:
     user = st.session_state.user
-    role = user["role"]
+    role = user.get("role", "")
     role_label = role.title()
 
     st.sidebar.markdown(f"""
@@ -47,20 +50,21 @@ if st.session_state.user:
     </div>
     """, unsafe_allow_html=True)
 
-    # Role-specific navigation options as per Phase 1 spec
+    # Role-based navigation whitelist
     if role == "elderly":
-        nav_options = ["Home", "My Medicines", "Appointments", "My Health", "Emergency Contacts"]
+        nav_options = ["Home", "My Medicines", "Appointments", "My Health", "Emergency Contacts", "My Profile"]
         default_page = "Home"
     elif role == "caregiver":
-        nav_options = ["Overview", "Elderly Profiles", "Medication Monitoring", "Appointments", "Health Records", "Activity History"]
+        nav_options = ["Overview", "Elderly Profiles", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"]
         default_page = "Overview"
     elif role == "family":
-        nav_options = ["Overview", "Care Updates", "Medicines", "Appointments", "Health Summary"]
+        nav_options = ["Overview", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"]
         default_page = "Overview"
     else:
-        nav_options = ["Home"]
+        nav_options = ["Home", "My Profile"]
         default_page = "Home"
 
+    # Enforce current page validity
     if st.session_state.current_page not in nav_options:
         st.session_state.current_page = default_page
 
@@ -72,6 +76,12 @@ if st.session_state.user:
     )
     st.session_state.current_page = selected_page
 
+    # Backend Permission Enforcement
+    if not can_view_page(user, selected_page):
+        st.error(f"Unauthorized: Your role ({role}) does not have access to '{selected_page}'.")
+        st.session_state.current_page = default_page
+        st.rerun()
+
     st.sidebar.divider()
 
     # Evaluator Role Switcher
@@ -82,7 +92,7 @@ if st.session_state.user:
         "family@dearly.demo": "Neha Patil (Family)",
     }
     
-    current_email = user["email"]
+    current_email = user.get("email", "")
     available_switches = {k: v for k, v in role_switch_options.items() if k != current_email}
     for target_email, target_label in available_switches.items():
         if st.sidebar.button(f"Switch to {target_label}", use_container_width=True):
@@ -101,8 +111,10 @@ if st.session_state.user:
         st.session_state.current_page = None
         st.rerun()
 
-    # Route to role view with selected page
-    if role == "elderly":
+    # Page Routing
+    if selected_page == "My Profile":
+        render_profile_view(user)
+    elif role == "elderly":
         render_elderly_view(user, page=selected_page)
     elif role == "caregiver":
         render_caregiver_view(user, page=selected_page)
@@ -111,15 +123,16 @@ if st.session_state.user:
     else:
         st.error(f"Unrecognized role: {role}")
 else:
+    # Public unauthenticated view
     st.sidebar.markdown("""
     <div style="background-color: #F0F6FC; border: 1px solid #C8DAEB; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-        <div style="font-weight: 700; font-size: 14px; color: #234B70; margin-bottom: 6px;">Pre-configured Accounts:</div>
+        <div style="font-weight: 700; font-size: 14px; color: #234B70; margin-bottom: 6px;">Evaluation Accounts:</div>
         <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #243447;">
             <li style="margin-bottom: 4px;"><code>elderly@dearly.demo</code></li>
             <li style="margin-bottom: 4px;"><code>caregiver@dearly.demo</code></li>
             <li style="margin-bottom: 4px;"><code>family@dearly.demo</code></li>
         </ul>
-        <div style="margin-top: 8px; font-size: 12px; color: #607086;">Click the Demo Account buttons on the login screen for instant access.</div>
+        <div style="margin-top: 8px; font-size: 12px; color: #607086;">Use the Demo Account buttons on the sign-in screen for instant access.</div>
     </div>
     """, unsafe_allow_html=True)
     render_auth_view()

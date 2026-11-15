@@ -38,9 +38,10 @@ The platform includes pre-seeded realistic healthcare data for immediate jury an
 
 - **Frontend & App Engine**: [Streamlit](https://streamlit.io/) (v1.40+) with custom scoped WCAG-compliant design system.
 - **Analytics & Data Visualization**: [Plotly](https://plotly.com/) for interactive adherence and health trend graphs.
+- **Security & Authentication**: [bcrypt](https://pypi.org/project/bcrypt/) with standard work factor 12 and salt generation.
 - **Data Persistence**: [SQLite3](https://sqlite.org/) with relational schema, foreign key enforcement, indexes, and idempotent migrations.
 - **Language**: Python 3.10+
-- **Testing**: Python standard library `unittest` suite (`test_app.py`).
+- **Testing**: Python standard library `unittest` suites (`test_phase2_auth.py`, `test_app.py`).
 
 ---
 
@@ -53,30 +54,37 @@ dearly/
 ├── app.py                      # Main application entry point & session router
 ├── database.py                 # SQLite schema, migrations, connection pool, and demo seeding
 ├── DESIGN.md                   # Permanent design system documentation & accessibility standard
+├── PROJECT_STATUS.md           # Progress tracking, phase completion status, and roadmap
+├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
+├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
-├── test_app.py                 # Automated test suite covering auth, doses, CRUD, and safety
-├── requirements.txt            # Python runtime dependencies
+├── test_phase2_auth.py         # Phase 2 Authentication & User Management test suite (15 tests)
+├── test_app.py                 # Core workflow integration test suite (8 tests)
+├── requirements.txt            # Python runtime dependencies (Streamlit, Plotly, bcrypt)
 ├── .env.example                # Configuration template
 ├── .gitignore                  # Git ignore rules
 │
 ├── services/                   # Decoupled Business Logic & Data Access Layer
 │   ├── __init__.py
-│   ├── auth_service.py         # Authentication, session check, and ward access permissions
+│   ├── auth_service.py         # Authentication & ward access permissions
+│   ├── user_service.py         # User registration, validation, and profile management
+│   ├── permissions.py          # Role-based access control (RBAC) & cross-patient guards
 │   ├── medication_service.py   # Medication CRUD, daily schedule computation, dose status, adherence
 │   ├── appointment_service.py  # Doctor appointment management, scheduling, and completion
 │   ├── health_service.py       # Health vitals logging (BP, Blood Sugar, SpO2, Heart Rate, Weight)
 │   ├── care_circle_service.py  # Care circle permissions, profiles, and relationship management
 │   ├── activity_service.py     # Immutable audit trail and care activity stream
 │   ├── emergency_service.py    # Emergency SOS alert dispatch, acknowledgment, and notifications
-│   └── summary_service.py      # AI / algorithmic daily care briefing with strict safety guardrails
+│   └── summary_service.py      # Algorithmic daily care briefing with strict safety guardrails
 │
 └── views/                      # Accessible Streamlit Presentation Layer
     ├── __init__.py
     ├── common.py               # Custom design system CSS, hero components, and disclaimers
-    ├── auth_view.py            # Clean sign-in with 1-click Quick Demo logins
+    ├── auth_view.py            # Clean sign-in & registration with 1-click Quick Demo logins
+    ├── profile_view.py         # User profile viewing and contact detail editing
     ├── elderly_view.py         # High-contrast, large-button, accessible elderly interface
     ├── caregiver_view.py       # Care coordination, missed-dose escalation, medication & vitals CRUD
-    └── family_view.py          # Observability, Plotly trend charts, and AI daily briefings
+    └── family_view.py          # Observability, Plotly trend charts, and daily briefings
 ```
 
 ---
