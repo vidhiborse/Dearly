@@ -65,6 +65,7 @@ def init_db():
             elderly_user_id INTEGER NOT NULL,
             medicine_name TEXT NOT NULL,
             dosage TEXT NOT NULL,
+            medication_type TEXT DEFAULT 'Tablet',
             schedule_time TEXT NOT NULL,
             frequency TEXT DEFAULT 'Daily',
             meal_timing TEXT DEFAULT 'After Meal',
@@ -72,9 +73,12 @@ def init_db():
             purpose TEXT,
             start_date TEXT,
             end_date TEXT,
+            prescribing_doctor TEXT,
+            notes TEXT,
             stock_quantity INTEGER DEFAULT 30,
             active INTEGER DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
             FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
@@ -83,6 +87,7 @@ def init_db():
             medication_id INTEGER NOT NULL,
             scheduled_date TEXT NOT NULL,
             scheduled_time TEXT NOT NULL,
+            actual_action_time TEXT,
             status TEXT NOT NULL CHECK(status IN ('taken','missed','skipped','pending')),
             notes TEXT,
             recorded_by INTEGER,
@@ -181,6 +186,11 @@ def init_db():
         ensure_column(conn, "medications", "meal_timing", "TEXT DEFAULT 'After Meal'")
         ensure_column(conn, "medications", "instructions", "TEXT")
         ensure_column(conn, "medications", "purpose", "TEXT")
+        ensure_column(conn, "medications", "medication_type", "TEXT DEFAULT 'Tablet'")
+        ensure_column(conn, "medications", "prescribing_doctor", "TEXT")
+        ensure_column(conn, "medications", "notes", "TEXT")
+        ensure_column(conn, "medications", "updated_at", "TEXT")
+        ensure_column(conn, "medication_logs", "actual_action_time", "TEXT")
 
 def create_demo_users():
     demo_users = [

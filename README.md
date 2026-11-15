@@ -58,6 +58,7 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
+├── test_phase3_meds.py         # Phase 3 Medication Management test suite (17 tests)
 ├── test_phase2_auth.py         # Phase 2 Authentication & User Management test suite (15 tests)
 ├── test_app.py                 # Core workflow integration test suite (8 tests)
 ├── requirements.txt            # Python runtime dependencies (Streamlit, Plotly, bcrypt)
@@ -132,7 +133,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-python -m unittest test_app.py
+# Run all automated tests (40 tests across Auth, RBAC, and Medication Management)
+python -m unittest test_phase2_auth.py test_app.py test_phase3_meds.py
 ```
 
 ### 5. Launch Dearly

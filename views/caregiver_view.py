@@ -4,11 +4,15 @@ from services.auth_service import get_accessible_elderly_wards
 from services.medication_service import (
     get_medications,
     get_today_schedule,
+    get_grouped_daily_schedule,
     record_dose_status,
     add_medication,
-    toggle_medication_status,
+    update_medication,
+    deactivate_medication,
+    activate_medication,
     delete_medication,
     get_adherence_metrics,
+    get_overdue_doses,
 )
 from services.appointment_service import (
     get_appointments,
@@ -80,13 +84,28 @@ def render_caregiver_view(user: dict, page: str = "Overview"):
 
     # 1. OVERVIEW DASHBOARD
     if page == "Overview":
-        if overdue_count > 0:
-            st.warning(f"Escalation Notice: {overdue_count} dose(s) scheduled for earlier today have not been confirmed taken.")
+        overdue_doses = get_overdue_doses(selected_ward_id)
+        if overdue_doses:
+            med_list_str = ", ".join([f"{d['medicine_name']} ({d['dosage']} at {d['formatted_time']})" for d in overdue_doses])
+            st.markdown(f"""
+            <div style="background-color: #FDF3E7; border: 1px solid #F5D7A1; border-left: 5px solid #C07D1E; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;">
+                <span style="font-size: 13px; font-weight: 700; color: #8A4B08; text-transform: uppercase; letter-spacing: 0.5px;">Overdue Medication Notice</span>
+                <div style="font-size: 17px; font-weight: 700; color: #243447; margin-top: 2px;">
+                    {len(overdue_doses)} dose(s) past due for {ward_name}: {med_list_str}
+                </div>
+                <p style="margin: 4px 0 0 0; font-size: 14px; color: #607086;">
+                    Please verify directly with {ward_name} if this dose was taken. Clinical safety guidance: Never advise taking an extra dose or doubling medication to make up for a missed dose.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        elif overdue_count > 0:
+            st.warning(f"Notice: {overdue_count} dose(s) scheduled for today require status confirmation.")
 
         # KPI Metrics
         k1, k2, k3, k4 = st.columns(4)
         with k1:
-            st.metric("7-Day Adherence", f"{metrics['adherence_percentage']}%")
+            adh_val = f"{metrics['adherence_percentage']}%" if metrics.get("has_data") else "No data yet"
+            st.metric("7-Day Adherence", adh_val)
         with k2:
             taken_today = sum(1 for s in today_schedule if s["status"] == "taken")
             st.metric("Today's Doses", f"{taken_today} / {len(today_schedule)}")
@@ -117,8 +136,8 @@ def render_caregiver_view(user: dict, page: str = "Overview"):
                     with st.container(border=True):
                         c1, c2 = st.columns([2.5, 1.2], vertical_alignment="center")
                         with c1:
-                            st.markdown(f"**{item['schedule_time']}** &bull; **{item['medicine_name']} {item['dosage']}** ({item['meal_timing']})")
-                            st.caption(f"Stock: {item['stock_quantity']} units remaining")
+                            st.markdown(f"**{item['schedule_time']}** &bull; **{item['medicine_name']} {item['dosage']}** ({item.get('medication_type', 'Tablet')}) &bull; {item['meal_timing']}")
+                            st.caption(f"Instructions: {item.get('instructions') or 'Follow regular directions'} &bull; Stock: {item['stock_quantity']} units remaining")
                         with c2:
                             st.markdown(f"<div style='margin-bottom: 6px; text-align: right;'>{status_style}</div>", unsafe_allow_html=True)
                             if st.button("Mark Taken", key=f"ov_take_{med_id}", type="primary", use_container_width=True):
@@ -130,6 +149,7 @@ def render_caregiver_view(user: dict, page: str = "Overview"):
                                     status="taken",
                                     recorded_by=user["id"],
                                     notes="Confirmed by caregiver from Overview",
+                                    user=user,
                                 )
                                 st.rerun()
 
@@ -181,123 +201,326 @@ def render_caregiver_view(user: dict, page: str = "Overview"):
     # 3. MEDICATION MONITORING
     elif page == "Medication Monitoring":
         st.markdown(f"<h1 style='font-size: 24px; color: #234B70; margin-bottom: 6px;'>Medication Monitoring &bull; {ward_name}</h1>", unsafe_allow_html=True)
-        
-        tab_list, tab_add = st.tabs(["Active Schedule", "Add Medication"])
+        st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 18px;'>Review daily schedules, update active prescriptions, and log administration status.</p>", unsafe_allow_html=True)
 
-        with tab_list:
-            inspect_date = st.date_input("View Schedule for Date", value=date.today())
+        tab_schedule, tab_registry, tab_add = st.tabs(["Daily Schedule", "Medications Registry", "Add Medication"])
+
+        # TAB 1: DAILY SCHEDULE GROUPED BY TIME PERIOD
+        with tab_schedule:
+            c_date, c_quick = st.columns([1.5, 2], vertical_alignment="bottom")
+            with c_date:
+                inspect_date = st.date_input("View Schedule for Date", value=date.today(), key="cg_inspect_date")
             inspect_date_str = inspect_date.isoformat()
-            schedule_items = get_today_schedule(selected_ward_id, target_date=inspect_date_str)
 
-            if not schedule_items:
-                st.info("No active medications found for this date.")
+            grouped_schedule = get_grouped_daily_schedule(selected_ward_id, target_date=inspect_date_str, user=user)
+            total_scheduled_items = sum(len(items) for items in grouped_schedule.values())
+
+            if total_scheduled_items == 0:
+                st.info("No medications are scheduled for this date. Check start/end dates or add a medication.")
             else:
-                for item in schedule_items:
-                    med_id = item["medication_id"]
-                    status = item["status"]
-                    status_style = {
-                        "taken": '<span class="badge-taken">TAKEN</span>',
-                        "pending": '<span class="badge-pending">PENDING</span>',
-                        "missed": '<span class="badge-missed">MISSED</span>',
-                        "skipped": '<span class="badge-skipped">SKIPPED</span>',
-                    }.get(status, '<span class="badge-pending">PENDING</span>')
+                period_display_order = [
+                    ("Morning", "05:00 - 11:59"),
+                    ("Afternoon", "12:00 - 16:59"),
+                    ("Evening", "17:00 - 20:59"),
+                    ("Night", "21:00 - 04:59"),
+                ]
 
-                    if item.get("is_overdue") and status == "pending":
-                        status_style = '<span class="badge-overdue">PAST DUE</span>'
+                for period_name, period_hours in period_display_order:
+                    items = grouped_schedule.get(period_name, [])
+                    if items:
+                        st.markdown(f"""
+                        <div style="margin: 18px 0 10px 0; padding-bottom: 6px; border-bottom: 2px solid #E2E8F0;">
+                            <span style="font-size: 18px; font-weight: 700; color: #234B70;">{period_name}</span>
+                            <span style="font-size: 13px; color: #607086; margin-left: 8px;">({period_hours}) &bull; {len(items)} dose(s)</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        for item in items:
+                            med_id = item["medication_id"]
+                            status = item["status"]
+                            is_overdue = item.get("is_overdue", False)
+
+                            if status == "taken":
+                                status_style = '<span class="badge-taken">TAKEN</span>'
+                            elif is_overdue:
+                                status_style = '<span class="badge-overdue">PAST DUE</span>'
+                            elif status == "skipped":
+                                status_style = '<span class="badge-skipped">SKIPPED</span>'
+                            elif status == "missed":
+                                status_style = '<span class="badge-missed">MISSED</span>'
+                            else:
+                                status_style = '<span class="badge-pending">PENDING</span>'
+
+                            with st.container(border=True):
+                                r_top, r_badge = st.columns([3, 1.2], vertical_alignment="center")
+                                with r_top:
+                                    st.markdown(f"**{item['formatted_time']}** &bull; <strong style='font-size: 17px; color: #243447;'>{item['medicine_name']} {item['dosage']}</strong> ({item.get('medication_type', 'Tablet')})", unsafe_allow_html=True)
+                                    detail_bits = []
+                                    if item.get("meal_timing"):
+                                        detail_bits.append(item["meal_timing"])
+                                    if item.get("instructions"):
+                                        detail_bits.append(item["instructions"])
+                                    if item.get("stock_quantity") is not None:
+                                        detail_bits.append(f"Stock: {item['stock_quantity']} units")
+                                    st.caption(" &bull; ".join(detail_bits))
+                                with r_badge:
+                                    st.markdown(f"<div style='text-align: right;'>{status_style}</div>", unsafe_allow_html=True)
+
+                                b1, b2, b3, b4 = st.columns([1, 1, 1, 1.3])
+                                with b1:
+                                    if st.button("Mark Taken", key=f"cg_take_{med_id}_{inspect_date_str}", use_container_width=True, type="primary"):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=selected_ward_id,
+                                            scheduled_date=inspect_date_str,
+                                            scheduled_time=item["schedule_time"],
+                                            status="taken",
+                                            recorded_by=user["id"],
+                                            notes="Recorded by caregiver",
+                                            user=user,
+                                        )
+                                        st.rerun()
+                                with b2:
+                                    if st.button("Mark Missed", key=f"cg_miss_{med_id}_{inspect_date_str}", use_container_width=True):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=selected_ward_id,
+                                            scheduled_date=inspect_date_str,
+                                            scheduled_time=item["schedule_time"],
+                                            status="missed",
+                                            recorded_by=user["id"],
+                                            notes="Recorded as missed by caregiver",
+                                            user=user,
+                                        )
+                                        st.rerun()
+                                with b3:
+                                    if st.button("Skip", key=f"cg_skip_{med_id}_{inspect_date_str}", use_container_width=True):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=selected_ward_id,
+                                            scheduled_date=inspect_date_str,
+                                            scheduled_time=item["schedule_time"],
+                                            status="skipped",
+                                            recorded_by=user["id"],
+                                            notes="Recorded as skipped with caregiver approval",
+                                            user=user,
+                                        )
+                                        st.rerun()
+                                with b4:
+                                    if status != "pending":
+                                        if st.button("Reset Status", key=f"cg_reset_{med_id}_{inspect_date_str}", use_container_width=True):
+                                            record_dose_status(
+                                                medication_id=med_id,
+                                                elderly_user_id=selected_ward_id,
+                                                scheduled_date=inspect_date_str,
+                                                scheduled_time=item["schedule_time"],
+                                                status="pending",
+                                                recorded_by=user["id"],
+                                                notes="Dose status reset by caregiver",
+                                                user=user,
+                                            )
+                                            st.rerun()
+
+        # TAB 2: MEDICATIONS REGISTRY (FILTER, VIEW, EDIT, DEACTIVATE, DELETE)
+        with tab_registry:
+            r_c1, r_c2 = st.columns([1.5, 2], vertical_alignment="center")
+            with r_c1:
+                filter_choice = st.radio(
+                    "Filter by Status",
+                    ["All Medications", "Active Medications", "Inactive Medications"],
+                    horizontal=True,
+                    key="cg_reg_filter",
+                )
+            filter_map = {
+                "All Medications": "all",
+                "Active Medications": "active",
+                "Inactive Medications": "inactive",
+            }
+            active_filter = filter_map[filter_choice]
+            meds_list = get_medications(selected_ward_id, status_filter=active_filter, user=user)
+
+            if not meds_list:
+                st.info(f"No medications match the '{filter_choice}' filter.")
+            else:
+                st.caption(f"Showing {len(meds_list)} medication(s) for {ward_name}")
+                for med in meds_list:
+                    m_id = med["id"]
+                    is_active = med.get("active", 1) == 1
+                    status_badge = '<span class="badge-taken">ACTIVE</span>' if is_active else '<span class="badge-skipped">INACTIVE</span>'
 
                     with st.container(border=True):
-                        r_top, r_badge = st.columns([3, 1], vertical_alignment="center")
-                        with r_top:
-                            st.markdown(f"**{item['schedule_time']}** &bull; **{item['medicine_name']} {item['dosage']}** ({item['meal_timing']})")
-                            st.caption(f"Instructions: {item['instructions']} &bull; Stock: {item['stock_quantity']} left")
-                        with r_badge:
-                            st.markdown(f"<div style='text-align: right;'>{status_style}</div>", unsafe_allow_html=True)
+                        top_l, top_r = st.columns([3, 1], vertical_alignment="center")
+                        with top_l:
+                            st.markdown(f"<strong style='font-size: 19px; color: #234B70;'>{med['medicine_name']} {med['dosage']}</strong> &bull; {med.get('medication_type', 'Tablet')}", unsafe_allow_html=True)
+                            st.markdown(f"**Schedule:** {med['schedule_time']} &bull; **Frequency:** {med['frequency']} &bull; **Meal Timing:** {med.get('meal_timing', 'After Meal')}")
+                        with top_r:
+                            st.markdown(f"<div style='text-align: right;'>{status_badge}</div>", unsafe_allow_html=True)
 
-                        b1, b2, b3, b4 = st.columns([1, 1, 1, 1.4])
-                        with b1:
-                            if st.button("Mark Taken", key=f"mon_take_{med_id}_{inspect_date_str}", use_container_width=True, type="primary"):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=selected_ward_id,
-                                    scheduled_date=inspect_date_str,
-                                    scheduled_time=item["schedule_time"],
-                                    status="taken",
-                                    recorded_by=user["id"],
-                                    notes="Verified by caregiver",
-                                )
-                                st.rerun()
-                        with b2:
-                            if st.button("Mark Missed", key=f"mon_miss_{med_id}_{inspect_date_str}", use_container_width=True):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=selected_ward_id,
-                                    scheduled_date=inspect_date_str,
-                                    scheduled_time=item["schedule_time"],
-                                    status="missed",
-                                    recorded_by=user["id"],
-                                    notes="Marked missed by caregiver",
-                                )
-                                st.rerun()
-                        with b3:
-                            if st.button("Skip", key=f"mon_skip_{med_id}_{inspect_date_str}", use_container_width=True):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=selected_ward_id,
-                                    scheduled_date=inspect_date_str,
-                                    scheduled_time=item["schedule_time"],
-                                    status="skipped",
-                                    recorded_by=user["id"],
-                                    notes="Skipped with caregiver approval",
-                                )
-                                st.rerun()
-                        with b4:
-                            if status != "pending":
-                                if st.button("Reset to Pending", key=f"mon_reset_{med_id}_{inspect_date_str}", use_container_width=True):
-                                    record_dose_status(
-                                        medication_id=med_id,
+                        info_col1, info_col2 = st.columns(2)
+                        with info_col1:
+                            st.caption(f"Start Date: {med.get('start_date') or 'Ongoing'} &bull; End Date: {med.get('end_date') or 'No end date'}")
+                            if med.get("instructions"):
+                                st.markdown(f"**Instructions:** {med['instructions']}")
+                            if med.get("purpose"):
+                                st.markdown(f"**Indication / Purpose:** {med['purpose']}")
+                        with info_col2:
+                            if med.get("prescribing_doctor"):
+                                st.markdown(f"**Prescribed by:** {med['prescribing_doctor']}")
+                            if med.get("notes"):
+                                st.markdown(f"**Clinical Notes:** {med['notes']}")
+                            st.caption(f"Stock Remaining: {med.get('stock_quantity', 30)} units")
+
+                        # Action Expander for Edit, Deactivate, and Delete
+                        with st.expander(f"Manage / Edit Details: {med['medicine_name']} ({med['dosage']})"):
+                            with st.form(f"edit_med_form_{m_id}"):
+                                ed_name = st.text_input("Medication Name", value=med["medicine_name"])
+                                ed_dosage = st.text_input("Dosage", value=med["dosage"])
+                                ed_c1, ed_c2 = st.columns(2)
+                                with ed_c1:
+                                    type_options = ["Tablet", "Capsule", "Syrup", "Injection", "Drops", "Inhaler", "Topical", "Other"]
+                                    cur_type = med.get("medication_type") or "Tablet"
+                                    type_idx = type_options.index(cur_type) if cur_type in type_options else 0
+                                    ed_type = st.selectbox("Medication Type", type_options, index=type_idx)
+                                with ed_c2:
+                                    freq_options = ["Daily", "Twice Daily", "Three Times Daily", "Weekly", "As needed"]
+                                    cur_freq = med.get("frequency") or "Daily"
+                                    freq_idx = freq_options.index(cur_freq) if cur_freq in freq_options else 0
+                                    ed_freq = st.selectbox("Frequency", freq_options, index=freq_idx)
+
+                                ed_t1, ed_t2 = st.columns(2)
+                                with ed_t1:
+                                    ed_time = st.text_input("Scheduled Time (24h HH:MM)", value=med["schedule_time"])
+                                with ed_t2:
+                                    timing_options = ["After Meal", "Before Meal", "With Meal", "Anytime"]
+                                    cur_timing = med.get("meal_timing") or "After Meal"
+                                    timing_idx = timing_options.index(cur_timing) if cur_timing in timing_options else 0
+                                    ed_timing = st.selectbox("Meal Timing", timing_options, index=timing_idx)
+
+                                ed_d1, ed_d2 = st.columns(2)
+                                with ed_d1:
+                                    ed_start = st.text_input("Start Date (YYYY-MM-DD)", value=med.get("start_date") or date.today().isoformat())
+                                with ed_d2:
+                                    ed_end = st.text_input("End Date (Optional YYYY-MM-DD)", value=med.get("end_date") or "")
+
+                                ed_inst = st.text_area("Patient Instructions", value=med.get("instructions") or "")
+                                ed_purpose = st.text_input("Condition / Purpose", value=med.get("purpose") or "")
+                                ed_doc = st.text_input("Prescribing Doctor", value=med.get("prescribing_doctor") or "")
+                                ed_notes = st.text_area("Additional Notes", value=med.get("notes") or "")
+                                ed_stock = st.number_input("Stock Quantity", min_value=0, max_value=1000, value=int(med.get("stock_quantity") or 30))
+
+                                ed_submit = st.form_submit_button("Save Changes", type="primary", use_container_width=True)
+
+                            if ed_submit:
+                                try:
+                                    update_medication(
+                                        medication_id=m_id,
                                         elderly_user_id=selected_ward_id,
-                                        scheduled_date=inspect_date_str,
-                                        scheduled_time=item["schedule_time"],
-                                        status="pending",
-                                        recorded_by=user["id"],
-                                        notes="Status reset by caregiver",
+                                        medicine_name=ed_name,
+                                        dosage=ed_dosage,
+                                        schedule_time=ed_time,
+                                        medication_type=ed_type,
+                                        frequency=ed_freq,
+                                        start_date=ed_start,
+                                        end_date=ed_end if ed_end.strip() else None,
+                                        meal_timing=ed_timing,
+                                        instructions=ed_inst,
+                                        purpose=ed_purpose,
+                                        prescribing_doctor=ed_doc,
+                                        notes=ed_notes,
+                                        stock_quantity=ed_stock,
+                                        updated_by=user["id"],
+                                        user=user,
                                     )
+                                    st.success(f"Medication '{ed_name}' details updated successfully.")
                                     st.rerun()
+                                except (ValueError, PermissionError) as ex:
+                                    st.error(str(ex))
 
+                            st.write("")
+                            act_c1, act_c2 = st.columns(2)
+                            with act_c1:
+                                if is_active:
+                                    if st.button(f"Deactivate {med['medicine_name']}", key=f"deact_{m_id}", use_container_width=True):
+                                        deactivate_medication(m_id, selected_ward_id, user=user)
+                                        st.warning(f"Medication {med['medicine_name']} deactivated. Historical logs remain preserved.")
+                                        st.rerun()
+                                else:
+                                    if st.button(f"Reactivate {med['medicine_name']}", key=f"react_{m_id}", use_container_width=True, type="primary"):
+                                        activate_medication(m_id, selected_ward_id, user=user)
+                                        st.success(f"Medication {med['medicine_name']} reactivated into daily schedule.")
+                                        st.rerun()
+
+                            with act_c2:
+                                delete_confirm = st.checkbox(f"Confirm deletion or archiving for {med['medicine_name']}", key=f"del_chk_{m_id}")
+                                if st.button(f"Delete Medication", key=f"del_{m_id}", use_container_width=True):
+                                    if not delete_confirm:
+                                        st.error("Please tick the confirmation checkbox above before deleting.")
+                                    else:
+                                        delete_medication(m_id, selected_ward_id, confirmed=True, user=user)
+                                        st.success(f"Medication {med['medicine_name']} processed. Historical records preserved.")
+                                        st.rerun()
+
+        # TAB 3: ADD MEDICATION
         with tab_add:
             with st.container(border=True):
+                st.markdown("<h3 style='font-size: 19px; color: #234B70; margin-top: 0;'>Prescribe New Medication</h3>", unsafe_allow_html=True)
+                st.caption(f"Add a new medication routine for {ward_name}. All clinical schedule fields are strictly validated.")
+
                 with st.form("add_medication_form"):
-                    med_name = st.text_input("Medicine Name", placeholder="e.g. Metformin")
-                    med_dosage = st.text_input("Dosage", placeholder="e.g. 500 mg")
+                    med_name = st.text_input("Medication Name *", placeholder="e.g. Metformin")
+                    med_dosage = st.text_input("Dosage *", placeholder="e.g. 500 mg or 1 tablet")
+
                     col_t1, col_t2 = st.columns(2)
                     with col_t1:
-                        sched_time = st.text_input("Scheduled Time (24h HH:MM)", value="08:30")
+                        med_type = st.selectbox("Medication Type *", ["Tablet", "Capsule", "Syrup", "Injection", "Drops", "Inhaler", "Topical", "Other"])
                     with col_t2:
-                        frequency = st.selectbox("Frequency", ["Daily", "Twice Daily", "Weekly", "As needed"])
-                    meal_timing = st.selectbox("Meal Timing", ["After Meal", "Before Meal", "With Meal", "Anytime"])
-                    purpose = st.text_input("Health Condition / Purpose", placeholder="e.g. Hypertension")
-                    instructions = st.text_area("Patient Instructions", placeholder="e.g. Take with water after breakfast")
+                        frequency = st.selectbox("Frequency *", ["Daily", "Twice Daily", "Three Times Daily", "Weekly", "As needed"])
+
+                    col_s1, col_s2 = st.columns(2)
+                    with col_s1:
+                        sched_time = st.text_input("Scheduled Time (24h HH:MM) *", value="08:30", placeholder="08:30")
+                    with col_s2:
+                        meal_timing = st.selectbox("Meal Timing", ["After Meal", "Before Meal", "With Meal", "Anytime"])
+
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        start_d = st.date_input("Start Date *", value=date.today())
+                    with col_d2:
+                        has_end_date = st.checkbox("Has End Date", value=False)
+                        end_d = st.date_input("End Date", value=date.today() + timedelta(days=30)) if has_end_date else None
+
+                    purpose = st.text_input("Condition / Purpose", placeholder="e.g. Type 2 Diabetes")
+                    instructions = st.text_area("Patient Instructions", placeholder="e.g. Take with a full glass of water immediately after breakfast")
+                    doc_name = st.text_input("Prescribing Doctor's Name (Optional)", placeholder="e.g. Dr. Sunita Kulkarni")
+                    notes = st.text_area("Additional Notes (Optional)", placeholder="e.g. Monitor fasting blood glucose weekly")
                     stock = st.number_input("Starting Stock Count", min_value=1, max_value=500, value=30)
-                    submit_med = st.form_submit_button("Save Medication", use_container_width=True, type="primary")
+
+                    submit_med = st.form_submit_button("Save Medication Routine", use_container_width=True, type="primary")
 
                 if submit_med:
-                    if not med_name or not med_dosage:
-                        st.error("Please enter both medicine name and dosage.")
-                    else:
+                    end_d_str = end_d.isoformat() if has_end_date and end_d else None
+                    try:
                         add_medication(
                             elderly_user_id=selected_ward_id,
                             medicine_name=med_name,
                             dosage=med_dosage,
+                            medication_type=med_type,
                             schedule_time=sched_time,
                             frequency=frequency,
+                            start_date=start_d.isoformat(),
+                            end_date=end_d_str,
                             meal_timing=meal_timing,
                             instructions=instructions,
                             purpose=purpose,
+                            prescribing_doctor=doc_name,
+                            notes=notes,
                             stock_quantity=stock,
-                            created_by=user["id"],
+                            user=user,
                         )
-                        st.success(f"Added {med_name} {med_dosage} to routine.")
+                        st.success(f"Medication '{med_name}' ({med_dosage}) added successfully to {ward_name}'s routine.")
                         st.rerun()
+                    except (ValueError, PermissionError) as ex:
+                        st.error(str(ex))
 
     # 4. APPOINTMENTS
     elif page == "Appointments":

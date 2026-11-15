@@ -1,6 +1,12 @@
 import streamlit as st
 from datetime import datetime, date
-from services.medication_service import get_today_schedule, record_dose_status, get_medications
+from services.medication_service import (
+    get_today_schedule,
+    get_grouped_daily_schedule,
+    get_overdue_doses,
+    record_dose_status,
+    get_medications,
+)
 from services.appointment_service import get_next_upcoming_appointment, get_appointments
 from services.health_service import get_health_readings, get_latest_vitals
 from services.care_circle_service import get_elderly_profile, get_care_circle_members
@@ -20,6 +26,22 @@ def render_elderly_view(user: dict, page: str = "Home"):
 
     # 1. HOME DASHBOARD
     if page == "Home":
+        # Overdue Dose Notification for Patient Reassurance
+        overdue_doses = get_overdue_doses(elderly_id, user=user)
+        if overdue_doses:
+            med_names = ", ".join([f"{d['medicine_name']} ({d['formatted_time']})" for d in overdue_doses])
+            st.markdown(f"""
+            <div style="background-color: #FDF3E7; border: 1px solid #F5D7A1; border-left: 5px solid #C07D1E; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;">
+                <span style="font-size: 13px; font-weight: 700; color: #8A4B08; text-transform: uppercase;">Scheduled Medicine Notice</span>
+                <div style="font-size: 17px; font-weight: 700; color: #243447; margin-top: 2px;">
+                    Scheduled time has passed for: {med_names}
+                </div>
+                <p style="margin: 4px 0 0 0; font-size: 15px; color: #607086;">
+                    If you haven't taken this medicine yet, please take your regular dose or check with your caregiver. Please never take extra medicines or double your dose.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
         # Welcome Banner
         with st.container(border=True):
             top_c1, top_c2 = st.columns([2.5, 1], vertical_alignment="center")
@@ -28,7 +50,7 @@ def render_elderly_view(user: dict, page: str = "Home"):
                 st.markdown(f"<h1 style='margin: 0; font-size: 26px; color: #234B70;'>Welcome, {elderly_name}</h1>", unsafe_allow_html=True)
                 st.markdown("<p style='margin: 4px 0 0 0; font-size: 18px; color: #243447;'>Here is your daily healthcare overview.</p>", unsafe_allow_html=True)
             with top_c2:
-                schedule = get_today_schedule(elderly_id)
+                schedule = get_today_schedule(elderly_id, user=user)
                 taken_count = sum(1 for s in schedule if s["status"] == "taken")
                 st.markdown(f"""
                 <div style="background-color: #EBF8F2; border: 1px solid #A8E5CB; padding: 10px 14px; border-radius: 8px; text-align: center;">
@@ -45,22 +67,18 @@ def render_elderly_view(user: dict, page: str = "Home"):
         with col_main:
             # Next Scheduled Dose
             st.markdown("<h2 style='font-size: 20px; color: #234B70; margin-bottom: 10px;'>Next Scheduled Dose</h2>", unsafe_allow_html=True)
-            schedule = get_today_schedule(elderly_id)
+            schedule = get_today_schedule(elderly_id, user=user)
             pending_doses = [s for s in schedule if s["status"] == "pending"]
             next_dose = pending_doses[0] if pending_doses else None
 
             with st.container(border=True):
                 if next_dose:
                     n_time = next_dose["schedule_time"]
-                    try:
-                        time_obj = datetime.strptime(n_time, "%H:%M")
-                        n_formatted = time_obj.strftime("%I:%M %p")
-                    except Exception:
-                        n_formatted = n_time
+                    n_formatted = next_dose.get("formatted_time", n_time)
 
                     st.markdown(f"""
                     <div style="background-color: #F0F6FC; border-left: 4px solid #234B70; padding: 14px 18px; border-radius: 6px; margin-bottom: 14px;">
-                        <span style="font-size: 14px; color: #607086; font-weight: 600;">UPCOMING AT {n_formatted}</span>
+                        <span style="font-size: 14px; color: #607086; font-weight: 600;">UPCOMING AT {n_formatted} ({next_dose.get('period', 'Scheduled')})</span>
                         <div style="font-size: 22px; font-weight: 700; color: #243447; margin-top: 2px;">{next_dose['medicine_name']} ({next_dose['dosage']})</div>
                         <div style="font-size: 16px; color: #607086; margin-top: 4px;">{next_dose['meal_timing']} &bull; {next_dose['instructions']}</div>
                     </div>
@@ -77,7 +95,8 @@ def render_elderly_view(user: dict, page: str = "Home"):
                                 scheduled_time=next_dose["schedule_time"],
                                 status="taken",
                                 recorded_by=elderly_id,
-                                notes="Confirmed from Home Dashboard",
+                                notes="Confirmed by patient from Home Dashboard",
+                                user=user,
                             )
                             st.rerun()
                     with btn_c2:
@@ -90,6 +109,7 @@ def render_elderly_view(user: dict, page: str = "Home"):
                                 status="skipped",
                                 recorded_by=elderly_id,
                                 notes="Skipped from Home Dashboard",
+                                user=user,
                             )
                             st.rerun()
                 else:
@@ -102,35 +122,40 @@ def render_elderly_view(user: dict, page: str = "Home"):
 
             st.write("")
 
-            # Today's Medication Overview
-            st.markdown("<h2 style='font-size: 20px; color: #234B70; margin-bottom: 10px;'>Today's Schedule Overview</h2>", unsafe_allow_html=True)
-            if not schedule:
+            # Today's Medication Overview Grouped by Period
+            st.markdown("<h2 style='font-size: 20px; color: #234B70; margin-bottom: 10px;'>Today's Schedule by Time of Day</h2>", unsafe_allow_html=True)
+            grouped_today = get_grouped_daily_schedule(elderly_id, user=user)
+            total_items = sum(len(items) for items in grouped_today.values())
+
+            if total_items == 0:
                 st.info("No medications recorded in your schedule for today.")
             else:
-                for item in schedule:
-                    m_name = item["medicine_name"]
-                    dosage = item["dosage"]
-                    t_str = item["schedule_time"]
-                    status = item["status"]
+                for period_name, period_hours in [("Morning", "05:00 - 11:59"), ("Afternoon", "12:00 - 16:59"), ("Evening", "17:00 - 20:59"), ("Night", "21:00 - 04:59")]:
+                    p_items = grouped_today.get(period_name, [])
+                    if p_items:
+                        st.markdown(f"<div style='font-size: 16px; font-weight: 700; color: #234B70; margin-top: 10px; margin-bottom: 4px;'>{period_name} ({period_hours})</div>", unsafe_allow_html=True)
+                        for item in p_items:
+                            m_name = item["medicine_name"]
+                            dosage = item["dosage"]
+                            t_fmt = item.get("formatted_time", item["schedule_time"])
+                            status = item["status"]
+                            is_overdue = item.get("is_overdue", False)
 
-                    try:
-                        t_fmt = datetime.strptime(t_str, "%H:%M").strftime("%I:%M %p")
-                    except Exception:
-                        t_fmt = t_str
+                            if status == "taken":
+                                badge = '<span class="badge-taken">TAKEN</span>'
+                            elif is_overdue:
+                                badge = '<span class="badge-overdue">PAST DUE</span>'
+                            elif status == "skipped":
+                                badge = '<span class="badge-skipped">SKIPPED</span>'
+                            else:
+                                badge = '<span class="badge-pending">PENDING</span>'
 
-                    badge = {
-                        "taken": '<span class="badge-taken">TAKEN</span>',
-                        "pending": '<span class="badge-pending">PENDING</span>',
-                        "missed": '<span class="badge-missed">MISSED</span>',
-                        "skipped": '<span class="badge-skipped">SKIPPED</span>',
-                    }.get(status, '<span class="badge-pending">PENDING</span>')
-
-                    with st.container(border=True):
-                        r1, r2 = st.columns([3, 1], vertical_alignment="center")
-                        with r1:
-                            st.markdown(f"**{t_fmt}** &bull; {m_name} ({dosage}) — *{item['meal_timing']}*")
-                        with r2:
-                            st.markdown(f"<div style='text-align: right;'>{badge}</div>", unsafe_allow_html=True)
+                            with st.container(border=True):
+                                r1, r2 = st.columns([3, 1], vertical_alignment="center")
+                                with r1:
+                                    st.markdown(f"**{t_fmt}** &bull; **{m_name}** ({dosage}) — *{item['meal_timing']}*")
+                                with r2:
+                                    st.markdown(f"<div style='text-align: right;'>{badge}</div>", unsafe_allow_html=True)
 
         with col_side:
             # Upcoming Appointments Card
@@ -186,100 +211,129 @@ def render_elderly_view(user: dict, page: str = "Home"):
     # 2. MY MEDICINES PAGE
     elif page == "My Medicines":
         st.markdown("<h1 style='font-size: 24px; color: #234B70; margin-bottom: 6px;'>My Medicines</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 18px;'>Review and confirm your prescribed daily medication routine.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 18px;'>Review and confirm your prescribed daily medication routine grouped by time of day.</p>", unsafe_allow_html=True)
 
-        schedule = get_today_schedule(elderly_id)
-        if not schedule:
-            st.info("No active medications found in your routine.")
+        grouped_today = get_grouped_daily_schedule(elderly_id, user=user)
+        total_items = sum(len(items) for items in grouped_today.values())
+
+        if total_items == 0:
+            st.info("No active medications found in your routine for today.")
         else:
-            for item in schedule:
-                med_id = item["medication_id"]
-                name = item["medicine_name"]
-                dosage = item["dosage"]
-                time_str = item["schedule_time"]
-                timing = item["meal_timing"] or "Take with water"
-                instructions = item["instructions"] or ""
-                status = item["status"]
-                is_overdue = item.get("is_overdue", False)
+            today_str = date.today().isoformat()
+            period_labels = [
+                ("Morning", "05:00 - 11:59"),
+                ("Afternoon", "12:00 - 16:59"),
+                ("Evening", "17:00 - 20:59"),
+                ("Night", "21:00 - 04:59"),
+            ]
 
-                try:
-                    time_obj = datetime.strptime(time_str, "%H:%M")
-                    formatted_time = time_obj.strftime("%I:%M %p")
-                except Exception:
-                    formatted_time = time_str
+            for period_name, period_hours in period_labels:
+                period_meds = grouped_today.get(period_name, [])
+                if period_meds:
+                    st.markdown(f"""
+                    <div style="margin: 20px 0 10px 0; padding-bottom: 6px; border-bottom: 2px solid #E2E8F0;">
+                        <span style="font-size: 19px; font-weight: 700; color: #234B70;">{period_name}</span>
+                        <span style="font-size: 14px; color: #607086; margin-left: 8px;">({period_hours})</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                if status == "taken":
-                    badge_html = '<span class="badge-taken">TAKEN</span>'
-                elif is_overdue:
-                    badge_html = '<span class="badge-overdue">PAST DUE</span>'
-                elif status == "skipped":
-                    badge_html = '<span class="badge-skipped">SKIPPED</span>'
-                else:
-                    badge_html = '<span class="badge-pending">PENDING</span>'
+                    for item in period_meds:
+                        med_id = item["medication_id"]
+                        name = item["medicine_name"]
+                        dosage = item["dosage"]
+                        time_str = item["schedule_time"]
+                        formatted_time = item.get("formatted_time", time_str)
+                        timing = item.get("meal_timing") or "Take with water"
+                        instructions = item.get("instructions") or "Follow standard directions."
+                        status = item["status"]
+                        is_overdue = item.get("is_overdue", False)
 
-                today_str = date.today().isoformat()
-
-                with st.container(border=True):
-                    row_info, row_action = st.columns([1.8, 1.2], vertical_alignment="center")
-                    with row_info:
-                        st.markdown(f"""
-                        <div>
-                            <span style="font-size: 20px; font-weight: 700; color: #234B70;">{formatted_time}</span>
-                            <span style="font-size: 14px; color: #607086; margin-left: 8px;">({timing})</span>
-                            <div style="font-size: 18px; font-weight: 700; color: #243447; margin-top: 2px;">{name} &bull; {dosage}</div>
-                            <div style="font-size: 14px; color: #607086; margin-top: 2px;">{instructions}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                    with row_action:
-                        st.markdown(f"<div style='margin-bottom: 8px; text-align: right;'>{badge_html}</div>", unsafe_allow_html=True)
-                        if status == "pending":
-                            if st.button("Mark as Taken", key=f"meds_take_{med_id}", type="primary", use_container_width=True):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=elderly_id,
-                                    scheduled_date=today_str,
-                                    scheduled_time=time_str,
-                                    status="taken",
-                                    recorded_by=elderly_id,
-                                    notes="Confirmed by patient",
-                                )
-                                st.rerun()
-                            if st.button("Skip", key=f"meds_skip_{med_id}", use_container_width=True):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=elderly_id,
-                                    scheduled_date=today_str,
-                                    scheduled_time=time_str,
-                                    status="skipped",
-                                    recorded_by=elderly_id,
-                                    notes="Skipped by patient",
-                                )
-                                st.rerun()
-                        elif status == "taken":
-                            if st.button("Undo / Reset", key=f"meds_undo_{med_id}", use_container_width=True):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=elderly_id,
-                                    scheduled_date=today_str,
-                                    scheduled_time=time_str,
-                                    status="pending",
-                                    recorded_by=elderly_id,
-                                    notes="Reset to pending",
-                                )
-                                st.rerun()
+                        if status == "taken":
+                            badge_html = '<span class="badge-taken">TAKEN</span>'
+                        elif is_overdue:
+                            badge_html = '<span class="badge-overdue">PAST DUE</span>'
                         elif status == "skipped":
-                            if st.button("Take Now", key=f"meds_retake_{med_id}", type="primary", use_container_width=True):
-                                record_dose_status(
-                                    medication_id=med_id,
-                                    elderly_user_id=elderly_id,
-                                    scheduled_date=today_str,
-                                    scheduled_time=time_str,
-                                    status="taken",
-                                    recorded_by=elderly_id,
-                                    notes="Taken later",
-                                )
-                                st.rerun()
+                            badge_html = '<span class="badge-skipped">SKIPPED</span>'
+                        else:
+                            badge_html = '<span class="badge-pending">PENDING</span>'
+
+                        with st.container(border=True):
+                            row_info, row_action = st.columns([1.8, 1.2], vertical_alignment="center")
+                            with row_info:
+                                st.markdown(f"""
+                                <div>
+                                    <span style="font-size: 22px; font-weight: 700; color: #234B70;">{formatted_time}</span>
+                                    <span style="font-size: 15px; color: #607086; margin-left: 8px;">({timing})</span>
+                                    <div style="font-size: 20px; font-weight: 700; color: #243447; margin-top: 4px;">{name} &bull; {dosage}</div>
+                                    <div style="font-size: 16px; color: #607086; margin-top: 4px;">{instructions}</div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                            with row_action:
+                                st.markdown(f"<div style='margin-bottom: 10px; text-align: right;'>{badge_html}</div>", unsafe_allow_html=True)
+                                if status == "pending":
+                                    if st.button("Mark as Taken", key=f"meds_take_{med_id}", type="primary", use_container_width=True):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=elderly_id,
+                                            scheduled_date=today_str,
+                                            scheduled_time=time_str,
+                                            status="taken",
+                                            recorded_by=elderly_id,
+                                            notes="Confirmed by patient",
+                                            user=user,
+                                        )
+                                        st.rerun()
+                                    if st.button("Skip this dose", key=f"meds_skip_{med_id}", use_container_width=True):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=elderly_id,
+                                            scheduled_date=today_str,
+                                            scheduled_time=time_str,
+                                            status="skipped",
+                                            recorded_by=elderly_id,
+                                            notes="Skipped by patient",
+                                            user=user,
+                                        )
+                                        st.rerun()
+                                elif status == "taken":
+                                    if st.button("Undo / Reset", key=f"meds_undo_{med_id}", use_container_width=True):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=elderly_id,
+                                            scheduled_date=today_str,
+                                            scheduled_time=time_str,
+                                            status="pending",
+                                            recorded_by=elderly_id,
+                                            notes="Reset to pending by patient",
+                                            user=user,
+                                        )
+                                        st.rerun()
+                                elif status == "skipped":
+                                    if st.button("Take Now", key=f"meds_retake_{med_id}", type="primary", use_container_width=True):
+                                        record_dose_status(
+                                            medication_id=med_id,
+                                            elderly_user_id=elderly_id,
+                                            scheduled_date=today_str,
+                                            scheduled_time=time_str,
+                                            status="taken",
+                                            recorded_by=elderly_id,
+                                            notes="Taken later by patient",
+                                            user=user,
+                                        )
+                                        st.rerun()
+
+        # Detailed Prescriptions List
+        st.write("")
+        with st.expander("View Full Prescription Details & Doctor Information"):
+            all_my_meds = get_medications(elderly_id, status_filter="active", user=user)
+            if not all_my_meds:
+                st.info("No active prescription records found.")
+            else:
+                for m in all_my_meds:
+                    with st.container(border=True):
+                        st.markdown(f"**{m['medicine_name']} ({m['dosage']})** &bull; {m.get('medication_type', 'Tablet')} &bull; Scheduled: {m['schedule_time']}")
+                        st.caption(f"Instructions: {m.get('instructions') or 'As directed'} | Prescribing Doctor: {m.get('prescribing_doctor') or 'Primary Physician'} | Stock: {m.get('stock_quantity', 30)} units")
 
     # 3. APPOINTMENTS PAGE
     elif page == "Appointments":

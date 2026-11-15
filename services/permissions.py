@@ -9,12 +9,17 @@ def can_access_elderly_record(user: dict, elderly_user_id: int) -> bool:
     if not user or not elderly_user_id:
         return False
 
-    user_id = user["id"]
+    try:
+        user_id = int(user["id"])
+        e_user_id = int(elderly_user_id)
+    except (ValueError, TypeError, KeyError):
+        return False
+
     role = user.get("role", "")
 
     # An elderly user can only access their own record
     if role == "elderly":
-        return user_id == elderly_user_id
+        return user_id == e_user_id
 
     # Caregivers and Family must be linked in care_circle
     with get_connection() as conn:
@@ -22,7 +27,7 @@ def can_access_elderly_record(user: dict, elderly_user_id: int) -> bool:
             """SELECT id, permission_level
                FROM care_circle
                WHERE elderly_user_id = ? AND member_user_id = ?""",
-            (elderly_user_id, user_id),
+            (e_user_id, user_id),
         ).fetchone()
         return link is not None
 
@@ -36,19 +41,24 @@ def can_manage_elderly_care(user: dict, elderly_user_id: int) -> bool:
     if not user or not elderly_user_id:
         return False
 
-    user_id = user["id"]
+    try:
+        user_id = int(user["id"])
+        e_user_id = int(elderly_user_id)
+    except (ValueError, TypeError, KeyError):
+        return False
+
     role = user.get("role", "")
 
     # Self-management for elderly user
     if role == "elderly":
-        return user_id == elderly_user_id
+        return user_id == e_user_id
 
     with get_connection() as conn:
         link = conn.execute(
             """SELECT permission_level
                FROM care_circle
                WHERE elderly_user_id = ? AND member_user_id = ?""",
-            (elderly_user_id, user_id),
+            (e_user_id, user_id),
         ).fetchone()
         if not link:
             return False
