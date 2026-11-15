@@ -29,6 +29,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 def ensure_column(conn, table, col_name, col_type):
+    if not table.isidentifier() or not col_name.isidentifier():
+        raise ValueError(f"Invalid SQL identifier: table='{table}', col_name='{col_name}'")
     info = conn.execute(f"PRAGMA table_info({table})").fetchall()
     existing_cols = [col[1] for col in info]
     if col_name not in existing_cols:
@@ -494,6 +496,12 @@ def init_db():
                         (num_part, unit_part, rid),
                     )
 
+        # Integrity maintenance: purge orphaned rows from cross-test runs
+        conn.execute("DELETE FROM care_circle WHERE member_user_id NOT IN (SELECT id FROM users)")
+        conn.execute("DELETE FROM care_circle WHERE elderly_user_id NOT IN (SELECT id FROM users)")
+        conn.execute("DELETE FROM notifications WHERE user_id NOT IN (SELECT id FROM users)")
+        conn.execute("DELETE FROM notifications WHERE elderly_user_id NOT IN (SELECT id FROM users)")
+
 
 def create_demo_users():
     demo_users = [
@@ -508,6 +516,12 @@ def create_demo_users():
                    VALUES (?, ?, ?, ?, ?)""",
                 (name, email, hash_password(password), role, phone),
             )
+            # Upgrade existing demo user if legacy hash is detected
+            existing = conn.execute("SELECT id, password_hash FROM users WHERE email = ?", (email,)).fetchone()
+            if existing:
+                h = existing["password_hash"]
+                if not (h.startswith("$2a$") or h.startswith("$2b$") or h.startswith("$2y$")):
+                    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), existing["id"]))
 
         elderly = conn.execute("SELECT id FROM users WHERE email = ?", ("elderly@dearly.demo",)).fetchone()
         caregiver = conn.execute("SELECT id FROM users WHERE email = ?", ("caregiver@dearly.demo",)).fetchone()
@@ -722,6 +736,10 @@ def authenticate_user(email: str, password: str):
             (email.strip(),),
         ).fetchone()
         if row and verify_password(password, row["password_hash"]):
+            current_hash = row["password_hash"]
+            if not (current_hash.startswith("$2a$") or current_hash.startswith("$2b$") or current_hash.startswith("$2y$")):
+                new_hash = hash_password(password)
+                conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, row["id"]))
             user = dict(row)
             user.pop("password_hash", None)
             return user

@@ -477,7 +477,9 @@ def acknowledge_emergency(
         # Notify senior and care circle
         recipients = [elderly_user_id]
         cc_rows = conn.execute(
-            "SELECT member_user_id FROM care_circle WHERE elderly_user_id = ? AND status = 'active'",
+            """SELECT cc.member_user_id FROM care_circle cc
+               JOIN users u ON cc.member_user_id = u.id
+               WHERE cc.elderly_user_id = ? AND (cc.status IS NULL OR cc.status = 'active')""",
             (elderly_user_id,),
         ).fetchall()
         recipients.extend([r["member_user_id"] for r in cc_rows if r["member_user_id"] != actor_user_id])
@@ -548,7 +550,9 @@ def update_assistance_status(
         # Notify senior & care circle
         recipients = [elderly_user_id]
         cc_rows = conn.execute(
-            "SELECT member_user_id FROM care_circle WHERE elderly_user_id = ? AND status = 'active'",
+            """SELECT cc.member_user_id FROM care_circle cc
+               JOIN users u ON cc.member_user_id = u.id
+               WHERE cc.elderly_user_id = ? AND (cc.status IS NULL OR cc.status = 'active')""",
             (elderly_user_id,),
         ).fetchall()
         recipients.extend([r["member_user_id"] for r in cc_rows if r["member_user_id"] != actor_user_id])
@@ -621,7 +625,9 @@ def resolve_emergency(
 
         recipients = [elderly_user_id]
         cc_rows = conn.execute(
-            "SELECT member_user_id FROM care_circle WHERE elderly_user_id = ? AND status = 'active'",
+            """SELECT cc.member_user_id FROM care_circle cc
+               JOIN users u ON cc.member_user_id = u.id
+               WHERE cc.elderly_user_id = ? AND (cc.status IS NULL OR cc.status = 'active')""",
             (elderly_user_id,),
         ).fetchall()
         recipients.extend([r["member_user_id"] for r in cc_rows if r["member_user_id"] != actor_user_id])
@@ -690,7 +696,9 @@ def cancel_emergency(
 
         recipients = [elderly_user_id]
         cc_rows = conn.execute(
-            "SELECT member_user_id FROM care_circle WHERE elderly_user_id = ? AND status = 'active'",
+            """SELECT cc.member_user_id FROM care_circle cc
+               JOIN users u ON cc.member_user_id = u.id
+               WHERE cc.elderly_user_id = ? AND (cc.status IS NULL OR cc.status = 'active')""",
             (elderly_user_id,),
         ).fetchall()
         recipients.extend([r["member_user_id"] for r in cc_rows if r["member_user_id"] != actor_user_id])

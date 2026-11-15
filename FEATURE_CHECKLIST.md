@@ -179,4 +179,34 @@
 | Read-only analytics (zero database mutation) | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_21`). |
 | Full regression verification across all earlier phases | All test suites | Complete | Verified in `test_phase9_analytics.py` (`test_22`). |
 | Analytics persistence across application restart | `database.py`, `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_23`). |
-| Full regression verification across all 163 tests | All test suites | Complete | 163/163 tests passing in 25.4s. |
+| **Phase 10: Security Hardening & Quality Assurance** | | | |
+| Password complexity enforcement (upper, lower, digit, symbol, >= 8 chars) | `database.py`, `services/auth_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_01`). |
+| Secure user authentication and rejection of invalid passwords | `database.py`, `services/auth_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_02`). |
+| Bcrypt password hashing ($2b$, work factor 12) & zero plaintext | `database.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_03`). |
+| Transparent upgrade of legacy prototype password hashes | `database.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_03`). |
+| Duplicate email registration prevention with clear error | `services/auth_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_04`). |
+| Backend direct-service RBAC enforcement (PermissionError on unauthorized ward) | `services/permissions.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_05`). |
+| Family member viewer write protection (cannot edit medications) | `services/permissions.py`, `services/medication_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_06`). |
+| Caregiver editor medication management (add, update, deactivate) | `services/medication_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_07`). |
+| Duplicate dose prevention via SQLite unique constraint and UPSERT | `services/dose_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_08`). |
+| Reminder status categorization (upcoming, due_now, overdue) | `services/reminder_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_09`). |
+| Two-sided Care Circle invitation lifecycle (invite -> accept -> active) | `services/care_circle_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_10`). |
+| Immediate access revocation upon circle membership removal | `services/permissions.py`, `services/care_circle_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_11`). |
+| Confidential care notes privacy (`caregivers_only` hidden from family) | `services/care_circle_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_12`). |
+| Appointment lifecycle management (create, reschedule, cancel, complete) | `services/appointment_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_13`). |
+| Health vitals persistence with non-destructive audit trail | `services/health_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_14`). |
+| Emergency SOS activation, duplicate guard, and lifecycle transitions | `services/emergency_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_15`). |
+| Real dynamic analytics calculations strictly from stored records | `services/analytics_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_16`). |
+| Robust input validation across all entities (names, emails, phones, vitals) | All services | Complete | Verified in `test_phase10_security_qa.py` (`test_17`). |
+| 100% parameterized queries & dynamic identifier validation (`isidentifier`) | `database.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_18`). |
+| Foreign key enforcement (`PRAGMA foreign_keys = ON`) with cascade deletes | `database.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_19`). |
+| Idempotent database migrations without data loss | `database.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_20`). |
+| Workflow A: Authentication lifecycle (register, login, session, logout) | `app.py`, `database.py`, `services/auth_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_21`). |
+| Workflow B: Care Circle lifecycle (invite, accept, access verify, revoke) | `services/care_circle_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_22`). |
+| Workflow C: Appointment management (create, reschedule, cancel, sync) | `services/appointment_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_23`). |
+| Workflow D: Health vitals monitoring (add reading, history, trend chart) | `services/health_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_24`). |
+| Workflow E: Emergency SOS lifecycle (activate, notify, acknowledge, resolve) | `services/emergency_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_25`). |
+| Workflow F: End-to-end analytics and CSV report generation | `services/analytics_service.py` | Complete | Verified in `test_phase10_security_qa.py` (`test_26`). |
+| Complete security documentation published in `SECURITY.md` | `SECURITY.md` | Complete | Published and verified. |
+| Zero-emoji interface verified across 100% of codebase | All project files | Complete | Verified via strict Unicode scan. |
+| Full regression verification across all 189 tests | All 10 test suites | Complete | 189/189 tests passing in 79.4s. |

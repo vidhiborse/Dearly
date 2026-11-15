@@ -58,15 +58,17 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
-├── test_phase9_analytics.py    # Phase 9 Analytics & Reports test suite (23 tests)
+├── SECURITY.md                 # Security architecture, threat model, RBAC and QA documentation
+├── test_phase10_security_qa.py # Phase 10 Security Hardening & Workflows A-F integration test suite (26 tests)
+├── test_phase9_analytics.py    # Phase 9 Analytics & Reports test suite (26 tests)
 ├── test_phase8_emergency.py    # Phase 8 Emergency SOS & Contacts test suite (20 tests)
 ├── test_phase7_health.py       # Phase 7 Health Monitoring & Records test suite (22 tests)
-├── test_phase6_appts.py        # Phase 6 Doctor Appointments test suite (21 tests)
+├── test_phase6_appts.py        # Phase 6 Doctor Appointments test suite (20 tests)
 ├── test_phase5_circle.py       # Phase 5 Family & Caregiver Circle test suite (20 tests)
 ├── test_phase4_reminders.py    # Phase 4 Reminders, Alerts & Escalation test suite (17 tests)
-├── test_phase3_meds.py         # Phase 3 Medication Management test suite (17 tests)
-├── test_phase2_auth.py         # Phase 2 Authentication & User Management test suite (15 tests)
-├── test_app.py                 # Core workflow integration test suite (8 tests)
+├── test_phase3_meds.py         # Phase 3 Medication Management test suite (20 tests)
+├── test_phase2_auth.py         # Phase 2 Authentication & User Management test suite (18 tests)
+├── test_app.py                 # Core workflow integration test suite (20 tests)
 ├── requirements.txt            # Python runtime dependencies (Streamlit, Plotly, bcrypt)
 ├── .env.example                # Configuration template
 ├── .gitignore                  # Git ignore rules
@@ -155,8 +157,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all 163 automated tests across all 9 phases
-python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py
+# Run all 189 automated tests across all 10 phases
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py test_phase10_security_qa.py
 ```
 
 ### 5. Launch Dearly

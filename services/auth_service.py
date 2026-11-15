@@ -44,6 +44,7 @@ def get_accessible_elderly_wards(user: dict):
                    JOIN users u ON cc.elderly_user_id = u.id
                    LEFT JOIN elderly_profiles ep ON ep.user_id = u.id
                    WHERE cc.member_user_id = ?
+                     AND (cc.status IS NULL OR cc.status = 'active')
                    ORDER BY u.name ASC""",
                 (user["id"],),
             ).fetchall()

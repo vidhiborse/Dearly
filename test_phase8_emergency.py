@@ -156,8 +156,9 @@ class TestPhase8EmergencySOS(unittest.TestCase):
         # Register a temporary inactive user
         with database.get_connection() as conn:
             conn.execute(
-                """INSERT OR IGNORE INTO users (id, name, email, password_hash, role, phone)
-                   VALUES (8888, 'Revoked Member', 'revoked@dearly.demo', 'hash', 'caregiver', '+91 99999 88888')"""
+                """INSERT OR REPLACE INTO users (id, name, email, password_hash, role, phone)
+                   VALUES (8888, 'Revoked Member', 'revoked@dearly.demo', ?, 'caregiver', '+91 99999 88888')""",
+                (database.hash_password("demo123"),),
             )
             # Add to care_circle as inactive
             conn.execute(

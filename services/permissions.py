@@ -21,12 +21,13 @@ def can_access_elderly_record(user: dict, elderly_user_id: int) -> bool:
     if role == "elderly":
         return user_id == e_user_id
 
-    # Caregivers and Family must be linked in care_circle
+    # Caregivers and Family must be linked in care_circle with active status
     with get_connection() as conn:
         link = conn.execute(
             """SELECT id, permission_level
                FROM care_circle
-               WHERE elderly_user_id = ? AND member_user_id = ?""",
+               WHERE elderly_user_id = ? AND member_user_id = ?
+                 AND (status IS NULL OR status = 'active')""",
             (e_user_id, user_id),
         ).fetchone()
         return link is not None
@@ -57,7 +58,8 @@ def can_manage_elderly_care(user: dict, elderly_user_id: int) -> bool:
         link = conn.execute(
             """SELECT permission_level
                FROM care_circle
-               WHERE elderly_user_id = ? AND member_user_id = ?""",
+               WHERE elderly_user_id = ? AND member_user_id = ?
+                 AND (status IS NULL OR status = 'active')""",
             (e_user_id, user_id),
         ).fetchone()
         if not link:
