@@ -96,7 +96,7 @@ Based on a strict 8px grid system:
 - **Primary Buttons**: Background `#234B70`, Text `#FFFFFF`, font size `17px`, bold font weight.
 - **Secondary Buttons**: Background `#FFFFFF`, Border `1px solid #234B70`, Text `#234B70`.
 - **Action Confirmation Buttons (Elderly UI)**:
-  - Take Dose: `#23815C` (Green) with checkmark icon + clear label "Mark as Taken".
+  - Take Dose: `#234B70` (Primary Blue) or `#23815C` (Verified Green) with clear label "Mark as Taken".
   - Skip / Later: `#607086` (Neutral outline) with clear label "Skip this dose".
 - **Emergency Button**: High-contrast red `#B84040` with explicit non-911 demo safety label.
 
