@@ -170,11 +170,63 @@ def init_db():
             FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            elderly_user_id INTEGER NOT NULL,
+            alert_type TEXT NOT NULL CHECK(alert_type IN ('upcoming', 'due_now', 'overdue', 'completed', 'skipped', 'escalation', 'system')),
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            medication_id INTEGER,
+            scheduled_date TEXT,
+            scheduled_time TEXT,
+            is_read INTEGER DEFAULT 0,
+            read_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, medication_id, scheduled_date, scheduled_time, alert_type),
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(medication_id) REFERENCES medications(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS caregiver_escalations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            medication_id INTEGER NOT NULL,
+            elderly_user_id INTEGER NOT NULL,
+            caregiver_user_id INTEGER NOT NULL,
+            scheduled_date TEXT NOT NULL,
+            scheduled_time TEXT NOT NULL,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'acknowledged', 'resolved')),
+            escalated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            is_acknowledged INTEGER DEFAULT 0,
+            acknowledged_at TEXT,
+            acknowledged_by INTEGER,
+            UNIQUE(medication_id, scheduled_date, scheduled_time, caregiver_user_id),
+            FOREIGN KEY(medication_id) REFERENCES medications(id) ON DELETE CASCADE,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(caregiver_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(acknowledged_by) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS reminder_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            grace_period_minutes INTEGER DEFAULT 15,
+            enable_reminders INTEGER DEFAULT 1,
+            enable_escalation INTEGER DEFAULT 1,
+            time_format TEXT DEFAULT '12h' CHECK(time_format IN ('12h', '24h')),
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE INDEX IF NOT EXISTS idx_medications_elderly ON medications(elderly_user_id, active);
         CREATE INDEX IF NOT EXISTS idx_medication_logs_lookup ON medication_logs(medication_id, scheduled_date);
         CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date);
         CREATE INDEX IF NOT EXISTS idx_health_readings_elderly ON health_readings(elderly_user_id, recorded_on);
         CREATE INDEX IF NOT EXISTS idx_activity_logs_elderly ON activity_logs(elderly_user_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+        CREATE INDEX IF NOT EXISTS idx_notifications_elderly ON notifications(elderly_user_id, alert_type);
+        CREATE INDEX IF NOT EXISTS idx_escalations_caregiver ON caregiver_escalations(caregiver_user_id, is_acknowledged);
         """)
 
         ensure_column(conn, "users", "phone", "TEXT")
@@ -356,6 +408,16 @@ def create_demo_users():
                         """INSERT INTO activity_logs (elderly_user_id, actor_user_id, action, details)
                            VALUES (?, ?, ?, ?)""",
                         act,
+                    )
+
+            # Seed default reminder settings
+            for u in [elderly, caregiver, family]:
+                if u:
+                    conn.execute(
+                        """INSERT OR IGNORE INTO reminder_settings
+                           (user_id, grace_period_minutes, enable_reminders, enable_escalation, time_format)
+                           VALUES (?, 15, 1, 1, '12h')""",
+                        (u["id"],),
                     )
 
 def authenticate_user(email: str, password: str):

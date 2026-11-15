@@ -71,9 +71,9 @@ def can_view_page(user: dict, requested_page: str) -> bool:
 
     role = user.get("role", "")
     allowed_pages = {
-        "elderly": ["Home", "My Medicines", "Appointments", "My Health", "Emergency Contacts", "My Profile"],
-        "caregiver": ["Overview", "Elderly Profiles", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"],
-        "family": ["Overview", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"],
+        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Appointments", "My Health", "Emergency Contacts", "My Profile"],
+        "caregiver": ["Overview", "Reminders & Alerts", "Elderly Profiles", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"],
+        "family": ["Overview", "Reminders & Alerts", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"],
     }
     return requested_page in allowed_pages.get(role, [])
 

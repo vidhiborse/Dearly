@@ -578,6 +578,13 @@ def record_dose_status(
                 "UPDATE medications SET stock_quantity = MAX(0, stock_quantity - 1) WHERE id = ?",
                 (medication_id,),
             )
+            # Resolve any active caregiver escalation for this scheduled dose
+            conn.execute(
+                """UPDATE caregiver_escalations
+                   SET status = 'resolved'
+                   WHERE medication_id = ? AND scheduled_date = ? AND scheduled_time = ? AND status = 'pending'""",
+                (medication_id, scheduled_date, scheduled_time),
+            )
         elif prev_status == "taken" and status_lower != "taken":
             conn.execute(
                 "UPDATE medications SET stock_quantity = stock_quantity + 1 WHERE id = ?",

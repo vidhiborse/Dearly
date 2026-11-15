@@ -9,7 +9,7 @@
 | **Phase 2: Authentication & User Management** | | | |
 | User registration for Elderly role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_01`). |
 | User registration for Caregiver role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_02`). |
-| User registration for Family Member role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_03`). |
+| User registration for Caregiver role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_03`). |
 | Required field & name length validation | `services/user_service.py` | Complete | Name >= 2 chars, phone >= 7 digits enforced. |
 | Strict email format regex validation | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_05`). |
 | Duplicate email prevention (case-insensitive) | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_04`). |
@@ -46,3 +46,21 @@
 | In-app overdue notice without extra dose/doubling advice | `views/elderly_view.py`, `views/caregiver_view.py` | Complete | Verified in warning banners with clinical disclaimer. |
 | Medication persistence across application restart | `database.py` | Complete | Verified in `test_phase3_meds.py` (`test_16`). |
 | Zero regression on authentication & profile updates | `test_app.py`, `test_phase2_auth.py` | Complete | Verified in `test_phase3_meds.py` (`test_17`) and full suite. |
+| **Phase 4: Smart Medication Reminders & Alerts** | | | |
+| Upcoming reminder generation for future doses | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_01`). |
+| Due-now reminder generation within grace window | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_02`). |
+| Overdue detection past configurable grace period | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_03`). |
+| Completed dose status handling | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_04`). |
+| Skipped dose status handling | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_05`). |
+| Grace period boundary calculation (5 - 60 min range) | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_06`). |
+| Respect medication start and end dates | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_07`). |
+| Prevent duplicate notifications via SQLite unique constraint | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_08`). |
+| Prevent duplicate caregiver escalations | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_09`). |
+| Caregiver acknowledgement without marking dose taken | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_10`). |
+| In-app notification center (unread tracking & mark read) | `services/reminder_service.py`, `views/notification_view.py` | Complete | Verified in `test_phase4_reminders.py` (`test_11`). |
+| Notification persistence across application restart | `database.py` | Complete | Verified in `test_phase4_reminders.py` (`test_12`). |
+| Role-based access control for reminders & escalations | `services/permissions.py`, `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_13`). |
+| Cross-profile isolation for multiple elderly wards | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_14`). |
+| Timezone and date boundary handling | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_15`). |
+| Idempotent reminder generation on page refreshes | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_16`). |
+| Existing Phase 3 medication management regression | `test_phase3_meds.py`, `test_phase4_reminders.py` | Complete | Verified in `test_phase4_reminders.py` (`test_17`) & 57/57 tests passing. |

@@ -27,7 +27,7 @@ The platform includes pre-seeded realistic healthcare data for immediate jury an
 | Role | Name | Email | Password | Access Details |
 |---|---|---|---|---|
 | **Elderly** | Asha Patil (Age 74) | `elderly@dearly.demo` | `demo123` | Accessible routine, large confirmation buttons, SOS button |
-| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | `demo123` | Full medication CRUD, missed dose alerts, vital recording |
+| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | `demo123` | Full medication CRUD, missed dose alerts, vital recording, escalations |
 | **Family** | Neha Patil (Daughter) | `family@dearly.demo` | `demo123` | Observability, Plotly adherence charts, AI care briefing |
 
 *Tip: A role switcher is available directly in the sidebar for instant evaluation across all 3 perspectives without re-typing passwords.*
@@ -41,7 +41,7 @@ The platform includes pre-seeded realistic healthcare data for immediate jury an
 - **Security & Authentication**: [bcrypt](https://pypi.org/project/bcrypt/) with standard work factor 12 and salt generation.
 - **Data Persistence**: [SQLite3](https://sqlite.org/) with relational schema, foreign key enforcement, indexes, and idempotent migrations.
 - **Language**: Python 3.10+
-- **Testing**: Python standard library `unittest` suites (`test_phase2_auth.py`, `test_app.py`).
+- **Testing**: Python standard library `unittest` suites (`test_phase2_auth.py`, `test_app.py`, `test_phase3_meds.py`, `test_phase4_reminders.py`).
 
 ---
 
@@ -58,6 +58,7 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
+├── test_phase4_reminders.py    # Phase 4 Reminders, Alerts & Escalation test suite (17 tests)
 ├── test_phase3_meds.py         # Phase 3 Medication Management test suite (17 tests)
 ├── test_phase2_auth.py         # Phase 2 Authentication & User Management test suite (15 tests)
 ├── test_app.py                 # Core workflow integration test suite (8 tests)
@@ -71,6 +72,7 @@ dearly/
 │   ├── user_service.py         # User registration, validation, and profile management
 │   ├── permissions.py          # Role-based access control (RBAC) & cross-patient guards
 │   ├── medication_service.py   # Medication CRUD, daily schedule computation, dose status, adherence
+│   ├── reminder_service.py     # Deterministic reminder engine, notifications & caregiver escalation
 │   ├── appointment_service.py  # Doctor appointment management, scheduling, and completion
 │   ├── health_service.py       # Health vitals logging (BP, Blood Sugar, SpO2, Heart Rate, Weight)
 │   ├── care_circle_service.py  # Care circle permissions, profiles, and relationship management
@@ -83,6 +85,7 @@ dearly/
     ├── common.py               # Custom design system CSS, hero components, and disclaimers
     ├── auth_view.py            # Clean sign-in & registration with 1-click Quick Demo logins
     ├── profile_view.py         # User profile viewing and contact detail editing
+    ├── notification_view.py    # In-App Notification Center, reminder stream & escalation management
     ├── elderly_view.py         # High-contrast, large-button, accessible elderly interface
     ├── caregiver_view.py       # Care coordination, missed-dose escalation, medication & vitals CRUD
     └── family_view.py          # Observability, Plotly trend charts, and daily briefings
@@ -98,12 +101,14 @@ All database interactions use parameterized SQL statements to prevent injection 
 2. **`elderly_profiles`**: Clinical background, blood group, allergies, primary physician, and emergency contacts.
 3. **`medications`**: Prescriptions, dosages, 24h schedule times, meal timings, instructions, and stock inventory.
 4. **`medication_logs`**: Recorded dose statuses (`taken`, `pending`, `missed`, `skipped`), timestamps, and actor IDs.
-5. **`appointments`**: Doctor visits, hospital/clinic details, appointment timestamps, and statuses.
-6. **`health_readings`**: Vital observations (Blood Pressure, Blood Sugar, Heart Rate, SpO2, Weight).
-7. **`care_circle`**: Relational mapping between elderly individuals and authorized circle members with permission levels (`editor` vs `viewer`).
-8. **`activity_logs`**: Immutable audit logs capturing every dose confirmation, profile change, and appointment.
-9. **`emergency_alerts`**: Log of triggered SOS emergency requests with active/acknowledged lifecycle.
-10. **`simulated_reminders`**: Dispatched SMS/Email alerts for escalation and caregiver notification.
+5. **`notifications`**: In-app alert queue (`due_now`, `overdue`, `escalation`, `completed`) with read/unread tracking.
+6. **`caregiver_escalations`**: Overdue dose caregiver escalations with acknowledgment lifecycle.
+7. **`reminder_settings`**: Per-user preferences (grace period in minutes, notifications enabled, 12h/24h time format).
+8. **`appointments`**: Doctor visits, hospital/clinic details, appointment timestamps, and statuses.
+9. **`health_readings`**: Vital observations (Blood Pressure, Blood Sugar, Heart Rate, SpO2, Weight).
+10. **`care_circle`**: Relational mapping between elderly individuals and authorized circle members with permission levels (`editor` vs `viewer`).
+11. **`activity_logs`**: Immutable audit logs capturing every dose confirmation, profile change, and appointment.
+12. **`emergency_alerts`**: Log of triggered SOS emergency requests with active/acknowledged lifecycle.
 
 ---
 
@@ -111,8 +116,8 @@ All database interactions use parameterized SQL statements to prevent injection 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/dearly.git
-cd dearly
+git clone https://github.com/vidhiborse/Dearly.git
+cd Dearly
 ```
 
 ### 2. Set up virtual environment
@@ -133,8 +138,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all automated tests (40 tests across Auth, RBAC, and Medication Management)
-python -m unittest test_phase2_auth.py test_app.py test_phase3_meds.py
+# Run all automated tests (57 tests across Auth, RBAC, Medication Management, and Reminders)
+python -m unittest test_phase2_auth.py test_app.py test_phase3_meds.py test_phase4_reminders.py
 ```
 
 ### 5. Launch Dearly
@@ -153,15 +158,7 @@ Dearly implements strict healthcare and safety guardrails:
 - **Informational AI Labeling**: All AI-synthesized care briefings carry explicit notices that they are derived from recorded logs and do not replace professional medical judgment.
 - **Emergency Workflow Clarification**: Emergency SOS features trigger immediate alerts to registered family and caregiver contacts, with explicit warnings that the platform is not a replacement for municipal 911 / 112 emergency services.
 - **Permission Boundaries**: Family members with `viewer` permissions cannot modify prescriptions or delete medical records, preserving caregiver authority.
-
----
-
-## Roadmap & Future Scope
-
-1. **Native Hardware Integrations**: Bluetooth LE pairing for automatic blood pressure cuff and pulse oximeter sync.
-2. **Voice & WhatsApp Companion**: Accessible voice-activated pill confirmation for seniors without touchscreens.
-3. **Automated Pharmacy Refills**: Webhook integration with licensed local pharmacies when stock falls below 5 days.
-4. **PostgreSQL Migration**: Seamless transition from SQLite to cloud PostgreSQL for enterprise healthcare provider scale.
+- **Separation of Escalation & Intake**: Caregiver escalation acknowledgement logs clinical oversight; it does *never* automatically mark a medication dose as taken.
 
 ---
 
