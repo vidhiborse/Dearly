@@ -21,9 +21,13 @@ from services.care_circle_service import get_user_pending_invitations
 from services.auth_service import get_accessible_elderly_wards
 from services.emergency_service import get_active_emergency
 
-# Initialize database schema and demo data
-init_db()
-create_demo_users()
+# Initialize database schema and demo data safely
+try:
+    init_db()
+    create_demo_users()
+except Exception as e:
+    import logging
+    logging.getLogger("dearly").exception("Startup DB initialization warning: %s", e)
 
 # Page configuration
 st.set_page_config(

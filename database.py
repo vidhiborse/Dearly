@@ -379,30 +379,6 @@ def init_db():
             FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY(actor_user_id) REFERENCES users(id)
         );
-
-        CREATE INDEX IF NOT EXISTS idx_medications_elderly ON medications(elderly_user_id, active);
-        CREATE INDEX IF NOT EXISTS idx_medication_logs_lookup ON medication_logs(medication_id, scheduled_date);
-        CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date);
-        CREATE INDEX IF NOT EXISTS idx_health_readings_elderly ON health_readings(elderly_user_id, recorded_on);
-        CREATE INDEX IF NOT EXISTS idx_health_obs_elderly ON health_observations(elderly_user_id, recorded_on);
-        CREATE INDEX IF NOT EXISTS idx_health_audit_reading ON health_record_audit(reading_id);
-        CREATE INDEX IF NOT EXISTS idx_emergency_contacts_elderly ON emergency_contacts(elderly_user_id, is_active);
-        CREATE INDEX IF NOT EXISTS idx_emergency_requests_elderly ON emergency_requests(elderly_user_id, status);
-        CREATE INDEX IF NOT EXISTS idx_emergency_requests_created ON emergency_requests(created_at);
-        CREATE INDEX IF NOT EXISTS idx_emergency_history_req ON emergency_status_history(request_id);
-        CREATE INDEX IF NOT EXISTS idx_activity_logs_elderly ON activity_logs(elderly_user_id, created_at);
-        CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
-        CREATE INDEX IF NOT EXISTS idx_notifications_elderly ON notifications(elderly_user_id, alert_type);
-        CREATE INDEX IF NOT EXISTS idx_escalations_caregiver ON caregiver_escalations(caregiver_user_id, is_acknowledged);
-        CREATE INDEX IF NOT EXISTS idx_invitations_invitee ON care_invitations(invitee_email, status);
-        CREATE INDEX IF NOT EXISTS idx_invitations_elderly ON care_invitations(elderly_user_id, status);
-        CREATE INDEX IF NOT EXISTS idx_care_notes_elderly ON care_notes(elderly_user_id, is_archived);
-        CREATE INDEX IF NOT EXISTS idx_appt_reminders_user ON appointment_reminders(user_id, is_sent);
-        CREATE INDEX IF NOT EXISTS idx_appt_reminders_appt ON appointment_reminders(appointment_id, reminder_type);
-        CREATE INDEX IF NOT EXISTS idx_users_passcode ON users(passcode);
-        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-        CREATE INDEX IF NOT EXISTS idx_sim_rem_eld ON simulated_reminders(elderly_user_id, sent_at);
-        CREATE INDEX IF NOT EXISTS idx_sim_rem_email ON simulated_reminders(recipient_email);
         """)
 
         # Migration: Ensure appointments table accommodates 'missed' status and new fields
@@ -472,6 +448,58 @@ def init_db():
         ensure_column(conn, "appointments", "created_by", "INTEGER")
         ensure_column(conn, "appointments", "updated_by", "INTEGER")
         ensure_column(conn, "appointments", "updated_at", "TEXT")
+        ensure_column(conn, "health_readings", "systolic", "INTEGER")
+        ensure_column(conn, "health_readings", "diastolic", "INTEGER")
+        ensure_column(conn, "health_readings", "numeric_value", "REAL")
+        ensure_column(conn, "health_readings", "unit", "TEXT DEFAULT ''")
+        ensure_column(conn, "health_readings", "context", "TEXT DEFAULT ''")
+        ensure_column(conn, "health_readings", "recorded_time", "TEXT DEFAULT ''")
+        ensure_column(conn, "health_readings", "recorded_by", "INTEGER")
+        ensure_column(conn, "health_readings", "appointment_id", "INTEGER")
+        ensure_column(conn, "health_readings", "is_corrected", "INTEGER DEFAULT 0")
+        ensure_column(conn, "health_readings", "corrected_at", "TEXT")
+        ensure_column(conn, "health_readings", "corrected_by", "INTEGER")
+        ensure_column(conn, "health_readings", "correction_notes", "TEXT")
+        ensure_column(conn, "health_readings", "updated_at", "TEXT")
+        ensure_column(conn, "simulated_reminders", "elderly_user_id", "INTEGER")
+        ensure_column(conn, "simulated_reminders", "recipient_email", "TEXT DEFAULT ''")
+        ensure_column(conn, "simulated_reminders", "subject", "TEXT DEFAULT ''")
+        ensure_column(conn, "simulated_reminders", "message", "TEXT DEFAULT ''")
+        ensure_column(conn, "simulated_reminders", "channel", "TEXT DEFAULT 'email'")
+        ensure_column(conn, "simulated_reminders", "status", "TEXT DEFAULT 'simulated_sent'")
+        ensure_column(conn, "simulated_reminders", "sent_at", "TEXT DEFAULT CURRENT_TIMESTAMP")
+
+        # Defensive index creation: executed after column migrations to prevent cloud schema crashes
+        indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_medications_elderly ON medications(elderly_user_id, active)",
+            "CREATE INDEX IF NOT EXISTS idx_medication_logs_lookup ON medication_logs(medication_id, scheduled_date)",
+            "CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date)",
+            "CREATE INDEX IF NOT EXISTS idx_health_readings_elderly ON health_readings(elderly_user_id, recorded_on)",
+            "CREATE INDEX IF NOT EXISTS idx_health_obs_elderly ON health_observations(elderly_user_id, recorded_on)",
+            "CREATE INDEX IF NOT EXISTS idx_health_audit_reading ON health_record_audit(reading_id)",
+            "CREATE INDEX IF NOT EXISTS idx_emergency_contacts_elderly ON emergency_contacts(elderly_user_id, is_active)",
+            "CREATE INDEX IF NOT EXISTS idx_emergency_requests_elderly ON emergency_requests(elderly_user_id, status)",
+            "CREATE INDEX IF NOT EXISTS idx_emergency_requests_created ON emergency_requests(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_emergency_history_req ON emergency_status_history(request_id)",
+            "CREATE INDEX IF NOT EXISTS idx_activity_logs_elderly ON activity_logs(elderly_user_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read)",
+            "CREATE INDEX IF NOT EXISTS idx_notifications_elderly ON notifications(elderly_user_id, alert_type)",
+            "CREATE INDEX IF NOT EXISTS idx_escalations_caregiver ON caregiver_escalations(caregiver_user_id, is_acknowledged)",
+            "CREATE INDEX IF NOT EXISTS idx_invitations_invitee ON care_invitations(invitee_email, status)",
+            "CREATE INDEX IF NOT EXISTS idx_invitations_elderly ON care_invitations(elderly_user_id, status)",
+            "CREATE INDEX IF NOT EXISTS idx_care_notes_elderly ON care_notes(elderly_user_id, is_archived)",
+            "CREATE INDEX IF NOT EXISTS idx_appt_reminders_user ON appointment_reminders(user_id, is_sent)",
+            "CREATE INDEX IF NOT EXISTS idx_appt_reminders_appt ON appointment_reminders(appointment_id, reminder_type)",
+            "CREATE INDEX IF NOT EXISTS idx_users_passcode ON users(passcode)",
+            "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
+            "CREATE INDEX IF NOT EXISTS idx_sim_rem_eld ON simulated_reminders(elderly_user_id, sent_at)",
+            "CREATE INDEX IF NOT EXISTS idx_sim_rem_email ON simulated_reminders(recipient_email)",
+        ]
+        for idx in indexes:
+            try:
+                conn.execute(idx)
+            except sqlite3.OperationalError:
+                pass
         ensure_column(conn, "health_readings", "systolic", "INTEGER")
         ensure_column(conn, "health_readings", "diastolic", "INTEGER")
         ensure_column(conn, "health_readings", "numeric_value", "REAL")
