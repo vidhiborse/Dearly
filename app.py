@@ -9,6 +9,7 @@ from views.profile_view import render_profile_view
 from views.notification_view import render_notification_view
 from views.care_circle_view import render_care_circle_view
 from views.appointment_view import render_appointment_view
+from views.health_view import render_health_view
 from services.permissions import can_view_page
 from services.reminder_service import sync_reminders_and_escalations, get_unread_notification_count
 from services.appointment_service import sync_appointment_reminders
@@ -149,6 +150,8 @@ if st.session_state.user:
         render_care_circle_view(user)
     elif selected_page == "Appointments":
         render_appointment_view(user)
+    elif selected_page in ("Health Records", "My Health", "Health Summary"):
+        render_health_view(user, page=selected_page)
     elif role == "elderly":
         render_elderly_view(user, page=selected_page)
     elif role == "caregiver":

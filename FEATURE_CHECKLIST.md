@@ -109,3 +109,27 @@
 | Family member read-only observation enforcement | `services/appointment_service.py`, `services/permissions.py` | Complete | Verified in `test_phase6_appts.py` (`test_20`). |
 | Calendar view & historical consultation archive | `services/appointment_service.py`, `views/appointment_view.py` | Complete | Verified in `test_phase6_appts.py` (`test_21`). |
 | Full regression verification across all 98 tests | All test suites | Complete | 98/98 tests passing in 36.2s. |
+| **Phase 7: Health Monitoring & Health Records** | | | |
+| Record Blood Pressure with systolic & diastolic | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_01`). |
+| Record Blood Sugar with context and unit (mg/dL, mmol/L) | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_02`). |
+| Record Weight measurement with unit (kg, lb) | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_03`). |
+| Record Heart Rate, SpO2, and Body Temperature | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_04`). |
+| Strict validation rejecting invalid/negative formats | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_05`). |
+| Unit validation for all measurement types | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_06`). |
+| Qualitative wellbeing observations with categories | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_07`). |
+| Latest vitals query across all measurement types | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_08`). |
+| Chronological descending history sorting | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_09`). |
+| Filter health records by type and date range | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_10`). |
+| Interactive Plotly charts using actual database records | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_11`). |
+| Clean handling and messaging for insufficient chart data | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_12`). |
+| Health record correction with immutable audit history | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_13`). |
+| Export health records to RFC-compliant CSV | `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_14`). |
+| Caregiver editor permissions verification | `services/permissions.py`, `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_15`). |
+| Family member read-only observation enforcement | `services/permissions.py`, `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_16`). |
+| Cross-patient profile isolation and security | `services/permissions.py`, `services/health_service.py` | Complete | Verified in `test_phase7_health.py` (`test_17`). |
+| Record and audit persistence across application restart | `database.py` | Complete | Verified in `test_phase7_health.py` (`test_18`). |
+| Existing medication management regression verification | `test_phase3_meds.py`, `test_phase7_health.py` | Complete | Verified in `test_phase7_health.py` (`test_19`). |
+| Existing reminder and escalation regression verification | `test_phase4_reminders.py`, `test_phase7_health.py` | Complete | Verified in `test_phase7_health.py` (`test_20`). |
+| Existing Care Circle regression verification | `test_phase5_circle.py`, `test_phase7_health.py` | Complete | Verified in `test_phase7_health.py` (`test_21`). |
+| Existing Doctor Appointment regression verification | `test_phase6_appts.py`, `test_phase7_health.py` | Complete | Verified in `test_phase7_health.py` (`test_22`). |
+| Full regression verification across all 120 tests | All test suites | Complete | 120/120 tests passing in 49.0s. |

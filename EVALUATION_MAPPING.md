@@ -95,6 +95,32 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 6. **Role-Based Permissions**:
    - Switch to **Family Member (`family@dearly.demo`)**: Notice that the appointment schedule is visible for complete peace of mind, but modification and cancellation controls are disabled.
 
+### Testing Health Monitoring & Records (Phase 7)
+1. **Health Records Navigation**:
+   - Select **"Health Records"** (Caregiver), **"My Health"** (Senior), or **"Health Summary"** (Family) from the sidebar navigation.
+2. **Health Summary & Latest Vitals Tab**:
+   - Inspect the prominent medical disclaimer notice emphasizing that Dearly is for personal tracking and care coordination, not diagnosis.
+   - Inspect the 6-vital card grid: Blood Pressure, Blood Sugar, Heart Rate, Oxygen Saturation (SpO2), Weight, and Body Temperature.
+   - Notice the neutral reference range status badge (`Within standard reference range` or `Outside standard reference range`).
+   - Open the informational reference range guide expander.
+3. **Health Trends & Charts Tab**:
+   - Select measurement from dropdown (`Blood Pressure`, `Blood Sugar`, `Weight`, `Heart Rate`, `Oxygen Saturation (SpO2)`).
+   - Inspect the interactive Plotly charts with clear shaded reference zones.
+   - If only 1 reading exists for a vital, note the informative message stating that at least 2 readings are needed to plot a trend line.
+4. **Record History & Audit Tab**:
+   - Filter records by measurement type and date range.
+   - Click **"Export Filtered Records to CSV"** to download the RFC-compliant dataset.
+   - Expand any reading: inspect the immutable audit history.
+   - For Senior/Caregiver: Test the **"Correct this Health Record"** form with a correction reason. Notice that the update marks the record as corrected and records original values in the audit table.
+5. **Record New Measurement Tab**:
+   - Log a new measurement (e.g. Blood Pressure: Systolic `120`, Diastolic `80`; or Fasting Blood Sugar: `100 mg/dL`).
+   - Notice option to link reading directly to a scheduled doctor appointment.
+6. **Wellbeing Observations Tab**:
+   - Log an observation (e.g., sleep quality or mobility note).
+   - Review chronological observation feed with category badges and author attribution.
+7. **Permission Enforcement**:
+   - Switch to **Family Member (`family@dearly.demo`)**: Notice full observability across summaries, trends, history, and CSV export, while recording and correcting controls are disabled.
+
 ---
 
 ## 2. Evaluation Criteria Mapping
@@ -141,12 +167,22 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 - **Calendar & Historical Tracking**: Date-grouped appointment agenda and archived history in [views/appointment_view.py](file:///d:/Dearly/views/appointment_view.py).
 - **Server-Side RBAC**: Authorized modifications restricted to seniors and editor caregivers; read-only observability enforced for family members.
 
-### Criterion 7: Automated Testing & Verification
+### Criterion 7: Health Monitoring & Clinical Records (Phase 7)
+- **Supported Measurement Types**: Blood Pressure, Blood Sugar, Weight, Heart Rate, Oxygen Saturation (SpO2), and Body Temperature in [services/health_service.py](file:///d:/Dearly/services/health_service.py).
+- **Clinical Validation**: Rejection of physically impossible values (non-numeric, negative values, diastolic >= systolic) and unit validation.
+- **Informational Reference Guidelines**: Strictly non-diagnostic evaluation flags with neutral guidance to consult a doctor.
+- **Plotly Visualizations**: Multi-vital trend lines with reference bands and graceful single-point empty state handling.
+- **Correction Audit Trail**: Non-destructive corrections storing previous values in `health_record_audit`.
+- **Qualitative Wellbeing Observations**: Category-tagged routine logs with appointment linkage in `health_observations`.
+- **CSV Data Export**: Secure, permission-checked RFC-compliant CSV generation.
+
+### Criterion 8: Automated Testing & Verification
 - **Test Suites**:
-  - `test_phase6_appts.py`: 21 mandatory Phase 6 tests covering appointment CRUD, past-date validation, rescheduling, reminders, duplicate prevention, and RBAC.
-  - `test_phase5_circle.py`: 20 mandatory Phase 5 tests covering invitation workflow, permission levels, care notes privacy, primary caregiver designation, and persistence.
+  - `test_phase7_health.py`: 22 mandatory Phase 7 tests covering all measurement types, validation, audit trails, charts, CSV export, and RBAC.
+  - `test_phase6_appts.py`: 21 mandatory Phase 6 tests covering appointment CRUD, past-date validation, rescheduling, reminders, and RBAC.
+  - `test_phase5_circle.py`: 20 mandatory Phase 5 tests covering invitation workflow, permission levels, care notes privacy, and primary caregiver designation.
   - `test_phase4_reminders.py`: 17 mandatory Phase 4 tests covering reminder statuses, grace period boundaries, caregiver escalation, and duplicate prevention.
   - `test_phase3_meds.py`: 17 mandatory Phase 3 tests covering CRUD, date validation, period grouping, and adherence mathematics.
   - `test_phase2_auth.py`: 15 authentication & RBAC unit tests.
   - `test_app.py`: 8 end-to-end integration tests.
-  - Total: **98 passing automated tests** with 0 errors and 0 failures.
+  - Total: **120 passing automated tests** with 0 errors and 0 failures.

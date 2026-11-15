@@ -275,10 +275,46 @@ def init_db():
             FOREIGN KEY(author_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS health_observations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            elderly_user_id INTEGER NOT NULL,
+            observation_text TEXT NOT NULL,
+            category TEXT DEFAULT 'general',
+            recorded_on TEXT NOT NULL,
+            recorded_time TEXT DEFAULT '',
+            appointment_id INTEGER,
+            recorded_by INTEGER NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+            FOREIGN KEY(recorded_by) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS health_record_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reading_id INTEGER NOT NULL,
+            elderly_user_id INTEGER NOT NULL,
+            changed_by INTEGER NOT NULL,
+            old_reading_type TEXT,
+            old_reading_value TEXT,
+            old_unit TEXT,
+            new_reading_type TEXT,
+            new_reading_value TEXT,
+            new_unit TEXT,
+            reason_for_change TEXT NOT NULL,
+            changed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(reading_id) REFERENCES health_readings(id) ON DELETE CASCADE,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(changed_by) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE INDEX IF NOT EXISTS idx_medications_elderly ON medications(elderly_user_id, active);
         CREATE INDEX IF NOT EXISTS idx_medication_logs_lookup ON medication_logs(medication_id, scheduled_date);
         CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date);
         CREATE INDEX IF NOT EXISTS idx_health_readings_elderly ON health_readings(elderly_user_id, recorded_on);
+        CREATE INDEX IF NOT EXISTS idx_health_obs_elderly ON health_observations(elderly_user_id, recorded_on);
+        CREATE INDEX IF NOT EXISTS idx_health_audit_reading ON health_record_audit(reading_id);
         CREATE INDEX IF NOT EXISTS idx_activity_logs_elderly ON activity_logs(elderly_user_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
         CREATE INDEX IF NOT EXISTS idx_notifications_elderly ON notifications(elderly_user_id, alert_type);
@@ -356,6 +392,54 @@ def init_db():
         ensure_column(conn, "appointments", "created_by", "INTEGER")
         ensure_column(conn, "appointments", "updated_by", "INTEGER")
         ensure_column(conn, "appointments", "updated_at", "TEXT")
+        ensure_column(conn, "health_readings", "systolic", "INTEGER")
+        ensure_column(conn, "health_readings", "diastolic", "INTEGER")
+        ensure_column(conn, "health_readings", "numeric_value", "REAL")
+        ensure_column(conn, "health_readings", "unit", "TEXT DEFAULT ''")
+        ensure_column(conn, "health_readings", "context", "TEXT DEFAULT ''")
+        ensure_column(conn, "health_readings", "recorded_time", "TEXT DEFAULT ''")
+        ensure_column(conn, "health_readings", "recorded_by", "INTEGER")
+        ensure_column(conn, "health_readings", "appointment_id", "INTEGER")
+        ensure_column(conn, "health_readings", "is_corrected", "INTEGER DEFAULT 0")
+        ensure_column(conn, "health_readings", "corrected_at", "TEXT")
+        ensure_column(conn, "health_readings", "corrected_by", "INTEGER")
+        ensure_column(conn, "health_readings", "correction_notes", "TEXT")
+        ensure_column(conn, "health_readings", "updated_at", "TEXT")
+
+        # Backfill numeric_value, systolic, diastolic, unit for unpopulated historical health_readings
+        unpopulated = conn.execute(
+            "SELECT id, reading_type, reading_value FROM health_readings WHERE numeric_value IS NULL AND systolic IS NULL"
+        ).fetchall()
+        for row in unpopulated:
+            rid = row["id"]
+            rtype = row["reading_type"]
+            val_str = row["reading_value"]
+            if "/" in val_str:
+                parts = val_str.split()[0].split("/")
+                try:
+                    sys_v = int(parts[0])
+                    dia_v = int(parts[1])
+                    conn.execute(
+                        "UPDATE health_readings SET systolic = ?, diastolic = ?, unit = 'mmHg' WHERE id = ?",
+                        (sys_v, dia_v, rid),
+                    )
+                except (ValueError, IndexError):
+                    pass
+            else:
+                num_part = ""
+                unit_part = ""
+                for token in val_str.split():
+                    try:
+                        f = float(token)
+                        num_part = f
+                    except ValueError:
+                        unit_part = token
+                if num_part != "":
+                    conn.execute(
+                        "UPDATE health_readings SET numeric_value = ?, unit = ? WHERE id = ?",
+                        (num_part, unit_part, rid),
+                    )
+
 
 def create_demo_users():
     demo_users = [
@@ -511,6 +595,24 @@ def create_demo_users():
                         """INSERT INTO health_readings (elderly_user_id, reading_type, reading_value, recorded_on, notes)
                            VALUES (?, ?, ?, ?, ?)""",
                         (e_id, r[0], r[1], r[2], r[3]),
+                    )
+
+            # Seed demo health observations
+            existing_obs = conn.execute("SELECT COUNT(*) as count FROM health_observations WHERE elderly_user_id = ?", (e_id,)).fetchone()
+            if existing_obs["count"] == 0:
+                today = date.today()
+                c_id = caregiver["id"] if caregiver else e_id
+                obs_list = [
+                    (e_id, "Reported 7 hours of undisturbed sleep; felt refreshed at breakfast.", "energy_sleep", (today - timedelta(days=2)).isoformat(), "08:30 AM", c_id),
+                    (e_id, "Good appetite during lunch. Drank 2 liters of water throughout the day.", "appetite_diet", (today - timedelta(days=1)).isoformat(), "01:30 PM", c_id),
+                    (e_id, "Completed 20 minutes of morning balcony walking and gentle arm stretches.", "mobility", today.isoformat(), "07:45 AM", e_id),
+                    (e_id, "Attentive and cheerful during family evening video call with Neha.", "mood_wellbeing", today.isoformat(), "06:00 PM", c_id),
+                ]
+                for o in obs_list:
+                    conn.execute(
+                        """INSERT INTO health_observations (elderly_user_id, observation_text, category, recorded_on, recorded_time, recorded_by)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        o,
                     )
 
             # Seed demo activity logs

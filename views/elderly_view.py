@@ -12,6 +12,7 @@ from services.health_service import get_health_readings, get_latest_vitals
 from services.care_circle_service import get_elderly_profile, get_care_circle_members
 from services.emergency_service import trigger_sos_alert, get_active_emergency_alerts
 from views.common import render_clinical_disclaimer
+from views.health_view import render_health_view
 
 def render_elderly_view(user: dict, page: str = "Home"):
     elderly_id = user["id"]
@@ -360,21 +361,7 @@ def render_elderly_view(user: dict, page: str = "Home"):
 
     # 4. MY HEALTH PAGE
     elif page == "My Health":
-        st.markdown("<h1 style='font-size: 24px; color: #234B70; margin-bottom: 6px;'>My Health Readings</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 18px;'>Recent observations recorded during home checkups.</p>", unsafe_allow_html=True)
-
-        readings = get_health_readings(elderly_id, limit=25)
-        if not readings:
-            st.info("No health readings recorded yet.")
-        else:
-            for r in readings:
-                with st.container(border=True):
-                    c1, c2 = st.columns([3, 1], vertical_alignment="center")
-                    with c1:
-                        st.markdown(f"**{r['reading_type']}**: **{r['reading_value']}**")
-                        st.caption(f"Context: {r['notes'] or 'Routine recording'}")
-                    with c2:
-                        st.markdown(f"<div style='text-align: right; color: #607086; font-size: 14px;'>{r['recorded_on']}</div>", unsafe_allow_html=True)
+        render_health_view(user, page="My Health")
 
     # 5. EMERGENCY CONTACTS PAGE
     elif page == "Emergency Contacts":

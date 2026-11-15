@@ -15,6 +15,7 @@ from services.appointment_service import (
 )
 from services.auth_service import get_accessible_elderly_wards
 from services.permissions import can_manage_elderly_care
+from services.health_service import get_latest_vitals, add_health_observation
 from views.common import render_clinical_disclaimer
 
 
@@ -130,7 +131,7 @@ def render_appointment_view(user: dict):
                     # Action controls for authorized users
                     if can_write:
                         st.write("")
-                        b_comp, b_resched, b_cancel = st.columns(3)
+                        b_comp, b_resched, b_cancel, b_vital = st.columns(4)
                         with b_comp:
                             with st.expander("Mark Completed"):
                                 post_notes = st.text_area("Post-Visit Notes", placeholder="e.g. Blood pressure checked, prescription renewed for 30 days.", key=f"post_{a_id}")
@@ -158,6 +159,23 @@ def render_appointment_view(user: dict):
                                     cancel_appointment(a_id, elderly_id, cancellation_reason=c_reason, user=user)
                                     st.warning("Appointment cancelled.")
                                     st.rerun()
+                        with b_vital:
+                            with st.expander("Post-Visit Note"):
+                                post_obs = st.text_area("Clinical Observation", placeholder="e.g. Attending physician suggested checking morning blood pressure daily.", key=f"p_obs_{a_id}")
+                                if st.button("Save Observation", key=f"p_obs_btn_{a_id}", use_container_width=True):
+                                    if post_obs.strip():
+                                        add_health_observation(
+                                            elderly_user_id=elderly_id,
+                                            observation_text=post_obs.strip(),
+                                            recorded_by=user_id,
+                                            category="post_visit",
+                                            appointment_id=a_id,
+                                            user=user,
+                                        )
+                                        st.success("Post-visit observation linked to appointment.")
+                                        st.rerun()
+                                    else:
+                                        st.error("Please enter observation text.")
 
     # ==========================================
     # TAB 2: CALENDAR & DATE VIEW

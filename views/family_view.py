@@ -14,6 +14,7 @@ from services.care_circle_service import get_care_circle_members, get_elderly_pr
 from services.activity_service import get_recent_activities
 from services.summary_service import generate_daily_care_summary
 from views.common import render_hero_header, render_clinical_disclaimer
+from views.health_view import render_health_view
 
 def render_family_view(user: dict, page: str = "Overview"):
     wards = get_accessible_elderly_wards(user)
@@ -249,91 +250,6 @@ def render_family_view(user: dict, page: str = "Overview"):
 
     # 5. HEALTH SUMMARY
     elif page == "Health Summary":
-        st.markdown(f"<h1 style='font-size: 24px; color: #234B70; margin-bottom: 6px;'>Health Summary &bull; {elderly_name}</h1>", unsafe_allow_html=True)
-        
-        st.markdown("### 7-Day Medication Adherence Breakdown")
-        breakdown = metrics.get("daily_breakdown", {})
-        dates = list(breakdown.keys())
-        taken_series = [breakdown[d]["taken"] for d in dates]
-        missed_series = [breakdown[d]["missed"] for d in dates]
-        skipped_series = [breakdown[d]["skipped"] for d in dates]
-
-        formatted_dates = [datetime.strptime(d, "%Y-%m-%d").strftime("%b %d") for d in dates]
-
-        fig_adherence = go.Figure()
-        fig_adherence.add_trace(go.Bar(
-            x=formatted_dates,
-            y=taken_series,
-            name="Taken",
-            marker_color="#23815C",
-        ))
-        fig_adherence.add_trace(go.Bar(
-            x=formatted_dates,
-            y=missed_series,
-            name="Missed",
-            marker_color="#B84040",
-        ))
-        fig_adherence.add_trace(go.Bar(
-            x=formatted_dates,
-            y=skipped_series,
-            name="Skipped",
-            marker_color="#A0AEC0",
-        ))
-        fig_adherence.update_layout(
-            barmode="stack",
-            height=300,
-            margin=dict(l=20, r=20, t=20, b=20),
-            plot_bgcolor="#FFFFFF",
-            paper_bgcolor="#FFFFFF",
-            font=dict(family="Plus Jakarta Sans, sans-serif", size=14, color="#243447"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="#243447")),
-            yaxis=dict(title="Doses", gridcolor="#EDF2F7", titlefont=dict(color="#243447"), tickfont=dict(color="#243447")),
-            xaxis=dict(gridcolor="#EDF2F7", tickfont=dict(color="#243447")),
-        )
-        st.plotly_chart(fig_adherence, use_container_width=True)
-
-        st.markdown("---")
-        st.markdown("### Health Readings History")
-        readings = get_health_readings(elderly_id, limit=20)
-        
-        sugar_readings = [r for r in readings if "Blood Sugar" in r["reading_type"]]
-        if len(sugar_readings) >= 2:
-            sugar_readings_sorted = sorted(sugar_readings, key=lambda x: x["recorded_on"])
-            s_dates = [r["recorded_on"] for r in sugar_readings_sorted]
-            s_vals = []
-            for r in sugar_readings_sorted:
-                val_num = ''.join(c for c in r["reading_value"] if c.isdigit())
-                s_vals.append(int(val_num) if val_num else 100)
-
-            fig_sugar = go.Figure()
-            fig_sugar.add_trace(go.Scatter(
-                x=s_dates,
-                y=s_vals,
-                mode="lines+markers",
-                name="Fasting Sugar (mg/dL)",
-                line=dict(color="#234B70", width=3),
-                marker=dict(size=8, color="#234B70"),
-            ))
-            fig_sugar.add_hrect(
-                y0=70, y1=125,
-                fillcolor="#23815C", opacity=0.08,
-                line_width=0,
-                annotation_text="Target Range (70-125 mg/dL)",
-                annotation_position="top left",
-                annotation_font_color="#23815C",
-            )
-            fig_sugar.update_layout(
-                title=dict(text="Fasting Blood Sugar Trend (mg/dL)", font=dict(color="#234B70", size=16)),
-                height=280,
-                margin=dict(l=20, r=20, t=40, b=20),
-                plot_bgcolor="#FFFFFF",
-                paper_bgcolor="#FFFFFF",
-                font=dict(family="Plus Jakarta Sans, sans-serif", size=14, color="#243447"),
-                yaxis=dict(title="mg/dL", gridcolor="#EDF2F7", titlefont=dict(color="#243447"), tickfont=dict(color="#243447")),
-                xaxis=dict(gridcolor="#EDF2F7", tickfont=dict(color="#243447")),
-            )
-            st.plotly_chart(fig_sugar, use_container_width=True)
-        else:
-            st.info("Additional vitals logs needed to chart blood sugar trends.")
+        render_health_view(user, page="Health Summary")
 
     render_clinical_disclaimer()

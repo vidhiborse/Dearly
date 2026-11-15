@@ -28,6 +28,7 @@ from services.care_circle_service import (
     get_elderly_profile,
     update_elderly_profile,
 )
+from views.health_view import render_health_view
 from services.activity_service import get_recent_activities
 from services.emergency_service import (
     get_active_emergency_alerts,
@@ -583,47 +584,7 @@ def render_caregiver_view(user: dict, page: str = "Overview"):
 
     # 5. HEALTH RECORDS
     elif page == "Health Records":
-        st.markdown(f"<h1 style='font-size: 24px; color: #234B70; margin-bottom: 6px;'>Health Records &bull; {ward_name}</h1>", unsafe_allow_html=True)
-        
-        hr_c1, hr_c2 = st.columns([1.2, 1], gap="large")
-        with hr_c1:
-            st.markdown("### Recent Vitals Readings")
-            readings = get_health_readings(selected_ward_id, limit=20)
-            if not readings:
-                st.info("No health readings recorded yet.")
-            else:
-                for r in readings:
-                    with st.container(border=True):
-                        st.markdown(f"**{r['reading_type']}**: **{r['reading_value']}** &bull; <span style='font-size: 13px; color: #607086;'>{r['recorded_on']}</span>", unsafe_allow_html=True)
-                        st.caption(f"Context: {r['notes'] or 'Routine recording'}")
-
-        with hr_c2:
-            st.markdown("### Log New Vitals")
-            with st.container(border=True):
-                with st.form("add_vital_form"):
-                    vital_type = st.selectbox(
-                        "Measurement Type",
-                        ["Blood Pressure", "Blood Sugar (Fasting)", "Heart Rate", "Oxygen Saturation (SpO2)", "Weight"],
-                    )
-                    vital_value = st.text_input("Reading Value", placeholder="e.g. 124/80 mmHg")
-                    vital_date = st.date_input("Date of Reading", value=date.today())
-                    vital_notes = st.text_input("Context / Notes", placeholder="e.g. Measured before breakfast")
-                    submit_vital = st.form_submit_button("Record Vital", use_container_width=True, type="primary")
-
-                if submit_vital:
-                    if not vital_value:
-                        st.error("Please enter a reading value.")
-                    else:
-                        add_health_reading(
-                            elderly_user_id=selected_ward_id,
-                            reading_type=vital_type,
-                            reading_value=vital_value,
-                            recorded_on=vital_date.isoformat(),
-                            notes=vital_notes,
-                            recorded_by=user["id"],
-                        )
-                        st.success("Vital recorded.")
-                        st.rerun()
+        render_health_view(user, page="Health Records")
 
     # 6. ACTIVITY HISTORY
     elif page == "Activity History":

@@ -1,6 +1,6 @@
 # Dearly — Project Status
 
-**Current Phase:** Phase 6 (Doctor Appointment Management)  
+**Current Phase:** Phase 7 (Health Monitoring & Health Records)  
 **Status:** Completed & Verified  
 **Date:** November 15, 2026  
 **Repository:** [github.com/vidhiborse/Dearly](https://github.com/vidhiborse/Dearly)
@@ -9,45 +9,203 @@
 
 ## 1. Executive Summary
 
-Phase 6 implements a comprehensive, clinically organized, and accessible **Doctor Appointment Management** module for Dearly (*Care that stays close.*). The system empowers seniors, authorized caregivers, and family members to coordinate medical consultations, specialist visits, routine examinations, and follow-ups.
+Phase 7 implements a robust, clinically organized, and accessible **Health Monitoring and Health Records** module for Dearly (*Care that stays close.*). The system empowers seniors, authorized caregivers, and family members to record, review, and visualize health information over time.
 
 Key capabilities delivered:
-1. **Appointment Creation & Clinical Metadata**: Capture patient profile, doctor's name, medical specialization, clinic/hospital, date, time, appointment type, location/address, reason for visit, and pre-visit notes with server-side validation.
-2. **Accessible Appointment Dashboard**: Dedicated **"Appointments"** section in primary navigation with clear tabs for Upcoming Visits, Calendar View, Schedule New Visit, and Visit History & Summaries. Prominent highlight for visits scheduled today.
-3. **Multi-Criteria Filtering**: Filter visits by appointment status (`all`, `today`, `upcoming`, `completed`, `cancelled`, `missed`), custom date ranges, and doctor/clinic keyword search.
-4. **Lifecycle Actions & Clinical Summaries**: Complete appointment lifecycle support: reschedule to new date/time with automated reminder reset, cancel with reason and confirmation, mark completed with post-visit doctor notes/prescriptions, or mark missed.
-5. **Deterministic In-App Reminders**: Automated 1-day-before and 1-hour-before in-app alerts dispatched to both the patient and linked care-circle members with duplicate suppression via SQLite unique constraints. Zero reminders sent for completed or cancelled visits.
-6. **Role-Based Access Control**: Strict server-side verification: seniors and editor caregivers can schedule, reschedule, edit, and record summaries; family members have comprehensive read-only observation. Cross-patient tampering is blocked.
-7. **Interactive Calendar & History**: Chronological calendar-grouped view by date and persistent historical archive of all past consultations.
-8. **100% Test Coverage**: 21 of 21 mandatory Phase 6 test scenarios passing; 98 of 98 total tests passing across all project test suites with 0 errors and 0 failures.
+1. **Health Records Dashboard**: Dedicated 5-tab interface (Health Summary & Latest Vitals, Health Trends & Charts, Record History & Audit, Record New Measurement, Wellbeing Observations) with explicit medical disclaimers and helpful empty states.
+2. **Comprehensive Measurements Support**: Full clinical support for:
+   - **Blood Pressure**: Systolic & Diastolic (`mmHg`), context, and reference range comparison.
+   - **Blood Sugar**: Numeric value, unit (`mg/dL` or `mmol/L`), context (`fasting`, `before_meal`, `after_meal`, `random`).
+   - **Weight**: Numeric value, unit (`kg` or `lb`), context.
+   - **Heart Rate**: Numeric value (`bpm`).
+   - **Oxygen Saturation (SpO2)**: Numeric value (`%`).
+   - **Body Temperature**: Numeric value, unit (`°C` or `°F`).
+3. **Clinical Boundary Validation**: Strict validation rejecting physically impossible values (non-numeric, negative values, diastolic >= systolic), while allowing legitimate edge readings with neutral clinical notices.
+4. **Informational Reference Ranges**: Neutral evaluation labels (`Within standard reference range`, `Outside standard reference range`) with standard disclaimers advising users to consult a doctor. Strictly non-diagnostic; zero overall risk scores or treatment alterations.
+5. **Plotly Health Trends**: Interactive, high-contrast trend charts for Systolic/Diastolic BP, Blood Sugar, Weight, Heart Rate, and SpO2 with target reference zones and informative handling for single readings.
+6. **Immutable Audit Trail for Record Corrections**: Authorized users can correct miskeyed readings while preserving previous values, actor ID, and correction reason in `health_record_audit`.
+7. **Care Circle Role-Based Access Control**: Seniors and editor caregivers can log and correct readings; family members have full read-only observability. Cross-patient tampering is blocked.
+8. **Doctor Appointment Integration**: Allows linking health readings and post-visit observations directly to scheduled doctor consultations.
+9. **CSV Export**: Permission-checked, RFC-compliant CSV export for patient records.
+10. **100% Test Coverage**: 22 of 22 mandatory Phase 7 test scenarios passing; 120 of 120 total tests passing across all project test suites with 0 errors and 0 failures.
 
 ---
 
-## 2. Completed in Phase 6
+## 2. Completed in Phase 7
 
-### A. Appointment Creation & Validation
-- Added appointment types: `General check-up`, `Follow-up visit`, `Specialist consultation`, `Routine examination`, `Other`.
-- Required fields validated: Doctor name (>= 2 chars), Hospital/Clinic name (>= 2 chars), valid calendar date (`YYYY-MM-DD`), and parseable time.
-- Prevention of past appointment scheduling (unless explicit historical record).
-- Pre-visit notes and reason captured for clinical context.
+### A. Health Record Dashboard
+- Dedicated section across all user roles:
+  - Elderly: "My Health" / "Health Records"
+  - Caregiver: "Health Records"
+  - Family: "Health Summary" / "Health Records"
+- Multi-column vital cards showing latest values, units, context, timestamps, and reference status badges.
+- Informational guide expander detailing standard adult clinical reference guidelines.
 
-### B. Appointment Dashboard & Today's Highlight
-- Dedicated **"Appointments"** section added to navigation across all three user roles.
-- **"Today's Appointments"** alert card at top of dashboard with high-contrast badge and quick actions.
-- Action expanders for immediate rescheduling, completion notes, and cancellation.
+### B. Health Measurements & Form Validation
+- Standard measurement types supported: Blood Pressure, Blood Sugar, Weight, Heart Rate, Oxygen Saturation (SpO2), Body Temperature.
+- Validates formats, positive numbers, and units.
+- Non-diagnostic neutral warning dispatched when readings exceed reference thresholds.
 
-### C. Lifecycle Management & Post-Visit Summaries
-- **Rescheduling**: Validates new date/time, updates record, logs activity, and atomically resets any previous reminders.
-- **Completion**: Allows recording post-visit doctor instructions, diagnostic notes, and medication adjustments.
-- **Cancellation**: Requires confirmation and records cancellation reason.
-- **Audit Logging**: Every action logged to `activity_logs` with actor attribution.
+### C. Health Trends & Plotly Visualizations
+- Separate charts with chronological x-axis, units, and reference bands.
+- Informational notice when insufficient history (< 2 readings) is available.
+- Zero fabrication of data points.
 
-### D. In-App Appointment Reminders
-- Dual deterministic reminder windows:
-  1. `1_day_before`: Evaluated within 24 hours of scheduled consultation.
-  2. `1_hour_before`: Evaluated within 1 hour of consultation.
-- Dispatched to senior and all active caregivers in the care circle.
-- Suppressed immediately if an appointment is completed or cancelled.
+### D. Qualitative Wellbeing Observations
+- Categorized observation logging (`general`, `energy_sleep`, `appetite_diet`, `mobility`, `mood_wellbeing`, `post_visit`).
+- Chronological observation feed with actor attribution and date/time stamps.
+
+### E. Record Correction with Audit Trail
+- Non-destructive updates: original values saved to `health_record_audit` before record modification.
+- UI expander displaying audit history for any corrected measurement.
+
+### F. CSV Health Export
+- Generates structured CSV with headers: Record ID, Patient Name, Date, Time, Measurement Type, Reading Value, Unit, Context, Recorded By, Status / Range, Notes, Corrected, Correction Reason.
+
+---
+
+## 3. Database Schema Modifications
+
+Database file: [data/dearly.db](file:///d:/Dearly/data/dearly.db)
+Added tables, columns, and indexes in [database.py](file:///d:/Dearly/database.py):
+
+### Table: `health_readings` (Migrated & Enhanced)
+- Added `systolic INTEGER`
+- Added `diastolic INTEGER`
+- Added `numeric_value REAL`
+- Added `unit TEXT DEFAULT ''`
+- Added `context TEXT DEFAULT ''`
+- Added `recorded_time TEXT DEFAULT ''`
+- Added `recorded_by INTEGER`
+- Added `appointment_id INTEGER`
+- Added `is_corrected INTEGER DEFAULT 0`
+- Added `corrected_at TEXT`
+- Added `corrected_by INTEGER`
+- Added `correction_notes TEXT`
+- Added `updated_at TEXT`
+- Index: `idx_health_readings_elderly` on `(elderly_user_id, recorded_on)`
+
+### Table: `health_observations`
+```sql
+CREATE TABLE IF NOT EXISTS health_observations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    elderly_user_id INTEGER NOT NULL,
+    observation_text TEXT NOT NULL,
+    category TEXT DEFAULT 'general',
+    recorded_on TEXT NOT NULL,
+    recorded_time TEXT DEFAULT '',
+    appointment_id INTEGER,
+    recorded_by INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+    FOREIGN KEY(recorded_by) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_health_obs_elderly ON health_observations(elderly_user_id, recorded_on);
+```
+
+### Table: `health_record_audit`
+```sql
+CREATE TABLE IF NOT EXISTS health_record_audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reading_id INTEGER NOT NULL,
+    elderly_user_id INTEGER NOT NULL,
+    changed_by INTEGER NOT NULL,
+    old_reading_type TEXT,
+    old_reading_value TEXT,
+    old_unit TEXT,
+    new_reading_type TEXT,
+    new_reading_value TEXT,
+    new_unit TEXT,
+    reason_for_change TEXT NOT NULL,
+    changed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(reading_id) REFERENCES health_readings(id) ON DELETE CASCADE,
+    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(changed_by) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_health_audit_reading ON health_record_audit(reading_id);
+```
+
+---
+
+## 4. Test Evidence
+
+Executed 22-scenario Phase 7 test suite in [test_phase7_health.py](file:///d:/Dearly/test_phase7_health.py) and full regression suite across all 120 tests:
+```powershell
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py
+........................................................................................................................
+Ran 120 tests in 49.023s — OK
+```
+
+| Test Case | Scenario Tested | Result |
+|---|---|---|
+| `test_01` | Record a valid blood pressure reading | Passed |
+| `test_02` | Record a valid blood sugar reading with context and unit | Passed |
+| `test_03` | Record a weight measurement | Passed |
+| `test_04` | Record heart rate, SpO2, and body temperature | Passed |
+| `test_05` | Reject invalid measurement formats (negative, non-numeric, diastolic >= systolic) | Passed |
+| `test_06` | Validate units and reject invalid units for measurement types | Passed |
+| `test_07` | Record qualitative health observations with categories | Passed |
+| `test_08` | Display latest vitals for each measurement type | Passed |
+| `test_09` | Display chronological history in descending date/time order | Passed |
+| `test_10` | Filter records by measurement type and date range | Passed |
+| `test_11` | Generate Plotly charts using real database measurements | Passed |
+| `test_12` | Handle insufficient chart data gracefully | Passed |
+| `test_13` | Correct a health record while preserving full audit history | Passed |
+| `test_14` | Export filtered health records to CSV with valid format | Passed |
+| `test_15` | Authorized editor caregiver can record and correct readings | Passed |
+| `test_16` | Family members have read-only access; write operations are rejected | Passed |
+| `test_17` | Prevent access to unrelated elderly profiles (cross-ward protection) | Passed |
+| `test_18` | Verify health records and audit trails persist across database restart | Passed |
+| `test_19` | Verify existing medication management features continue working | Passed |
+| `test_20` | Verify existing reminder and escalation engine continues working | Passed |
+| `test_21` | Verify Care Circle membership and care notes remain functional | Passed |
+| `test_22` | Verify appointment scheduling, rescheduling, and reminders remain functional | Passed |
+
+---
+
+## 5. Files Created & Modified in Phase 7
+
+### Created:
+1. **[views/health_view.py](file:///d:/Dearly/views/health_view.py)**: Dedicated 5-tab Health Records & Monitoring view (Summary & Latest Vitals, Trends & Charts, Record History & Audit, Log Measurement, Wellbeing Observations).
+2. **[test_phase7_health.py](file:///d:/Dearly/test_phase7_health.py)**: Mandatory 22-scenario automated test suite.
+
+### Modified:
+1. **[database.py](file:///d:/Dearly/database.py)**: Added `health_observations` and `health_record_audit` tables; added column migrations and backfill for `health_readings`.
+2. **[services/health_service.py](file:///d:/Dearly/services/health_service.py)**: Implemented complete health measurement CRUD, clinical boundary validation, informational reference range evaluation, audit tracking, Plotly trend generation, and CSV export.
+3. **[services/permissions.py](file:///d:/Dearly/services/permissions.py)**: Added `can_view_health_records` and `can_manage_health_records` RBAC helpers.
+4. **[app.py](file:///d:/Dearly/app.py)**: Connected `render_health_view` to routes (`"Health Records"`, `"My Health"`, `"Health Summary"`).
+5. **[views/caregiver_view.py](file:///d:/Dearly/views/caregiver_view.py)**: Delegated Health Records to `render_health_view`.
+6. **[views/elderly_view.py](file:///d:/Dearly/views/elderly_view.py)**: Delegated My Health to `render_health_view`.
+7. **[views/family_view.py](file:///d:/Dearly/views/family_view.py)**: Delegated Health Summary to `render_health_view`.
+8. **[views/appointment_view.py](file:///d:/Dearly/views/appointment_view.py)**: Integrated health vitals review and post-visit observation logging.
+9. **[PROJECT_STATUS.md](file:///d:/Dearly/PROJECT_STATUS.md)**: Updated Phase 7 status report.
+10. **[FEATURE_CHECKLIST.md](file:///d:/Dearly/FEATURE_CHECKLIST.md)**: Verified requirement checklist.
+11. **[EVALUATION_MAPPING.md](file:///d:/Dearly/EVALUATION_MAPPING.md)**: Added jury evaluation steps for Health Monitoring.
+12. **[README.md](file:///d:/Dearly/README.md)**: Updated architecture and test instructions.
+
+---
+
+## 6. Known Limitations & Strict Scope
+
+- **Non-Diagnostic**: Health readings and reference ranges are strictly for personal tracking and care coordination. Dearly never provides medical diagnoses, automated dosage changes, or treatment advice.
+- **No Wearable APIs**: In-person digital thermometer, blood pressure cuff, and pulse oximeter readings are recorded manually; Bluetooth / proprietary wearable streams are out of scope.
+- **No Automated External Transmission**: Health records are not automatically transmitted to doctors or external hospital networks.
+
+---
+
+## 7. Roadmap & Next Phase
+
+- [x] Phase 1: Professional UI/UX Foundation & Accessible Role Shell
+- [x] Phase 2: Authentication, Multi-Role Registration & RBAC
+- [x] Phase 3: Medication Management, Dose Tracking & Adherence
+- [x] Phase 4: Smart Medication Reminder & Alert System
+- [x] Phase 5: Family & Caregiver Circle
+- [x] Phase 6: Doctor Appointment Scheduling & Coordination
+- [x] Phase 7: Health Vitals & Clinical Readings (Blood Pressure, Glucose, SpO2, Heart Rate)
+- [ ] Phase 8: Emergency SOS Workflow & Verification
+
 - Prevented duplicate alerts via `appointment_reminders` unique constraints.
 
 ### E. Calendar View & Historical Archive

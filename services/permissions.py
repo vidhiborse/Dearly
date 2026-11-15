@@ -71,11 +71,26 @@ def can_view_page(user: dict, requested_page: str) -> bool:
 
     role = user.get("role", "")
     allowed_pages = {
-        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Emergency Contacts", "My Profile"],
+        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Health Records", "Emergency Contacts", "My Profile"],
         "caregiver": ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"],
-        "family": ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"],
+        "family": ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "Health Records", "My Profile"],
     }
     return requested_page in allowed_pages.get(role, [])
+
+
+def can_view_health_records(user: dict, elderly_user_id: int) -> bool:
+    """Checks if user is authorized to view health records for an elderly person."""
+    return can_access_elderly_record(user, elderly_user_id)
+
+
+def can_manage_health_records(user: dict, elderly_user_id: int) -> bool:
+    """
+    Checks if user is authorized to log, edit, or correct health measurements:
+    - Elderly individual: permitted for their own profile.
+    - Caregiver: permitted if linked with 'editor' permission in care_circle.
+    - Family member: denied by default (read-only observability).
+    """
+    return can_manage_elderly_care(user, elderly_user_id)
 
 
 def can_view_care_circle(user: dict, elderly_user_id: int) -> bool:
