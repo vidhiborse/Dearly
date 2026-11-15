@@ -1,3 +1,5 @@
+import html
+import time
 import streamlit as st
 from database import init_db, create_demo_users, authenticate_user
 from views.common import inject_custom_styles
@@ -54,26 +56,38 @@ if st.session_state.user:
     role_label = role.title()
 
     # Idempotent synchronization of reminders and overdue escalations on application load
+    # Throttled to at most once every 30 seconds to optimize runtime efficiency and minimize database locks
+    now_ts = time.time()
+    last_sync = st.session_state.get("_last_sync_timestamp", 0)
+    should_sync = (now_ts - last_sync) > 30
+
     if role == "elderly":
         primary_ward_id = user["id"]
-        sync_reminders_and_escalations(user["id"], user=user)
-        sync_appointment_reminders(user["id"], user=user)
+        if should_sync:
+            sync_reminders_and_escalations(user["id"], user=user)
+            sync_appointment_reminders(user["id"], user=user)
+            st.session_state["_last_sync_timestamp"] = now_ts
     else:
         accessible_wards = get_accessible_elderly_wards(user)
         primary_ward_id = accessible_wards[0]["id"] if accessible_wards else None
-        for w in accessible_wards:
-            sync_reminders_and_escalations(w["id"], user=user)
-            sync_appointment_reminders(w["id"], user=user)
+        if should_sync:
+            for w in accessible_wards:
+                sync_reminders_and_escalations(w["id"], user=user)
+                sync_appointment_reminders(w["id"], user=user)
+            st.session_state["_last_sync_timestamp"] = now_ts
 
     unread_notifs = get_unread_notification_count(user["id"])
     notif_nav_title = f"Reminders & Alerts ({unread_notifs})" if unread_notifs > 0 else "Reminders & Alerts"
     my_invites_count = len(get_user_pending_invitations(user))
 
+    esc_name = html.escape(str(user['name']))
+    esc_role = html.escape(str(role_label))
+
     st.sidebar.markdown(f"""
     <div style="background-color: #FFFFFF; border: 1px solid #DFE6EE; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
         <div style="font-size: 12px; color: #607086; font-weight: 700; text-transform: uppercase;">Signed in as</div>
-        <div style="font-size: 17px; font-weight: 700; color: #243447; margin-top: 2px;">{user['name']}</div>
-        <div style="font-size: 14px; color: #234B70; font-weight: 600; margin-top: 4px;">Role: {role_label}</div>
+        <div style="font-size: 17px; font-weight: 700; color: #243447; margin-top: 2px;">{esc_name}</div>
+        <div style="font-size: 14px; color: #234B70; font-weight: 600; margin-top: 4px;">Role: {esc_role}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -144,10 +158,7 @@ if st.session_state.user:
 
     st.sidebar.divider()
     if st.sidebar.button("Log Out", use_container_width=True):
-        st.session_state.user = None
-        st.session_state.pop("selected_ward_id", None)
-        st.session_state.pop("family_ward_id", None)
-        st.session_state.current_page = None
+        st.session_state.clear()
         st.rerun()
 
     # Page Routing

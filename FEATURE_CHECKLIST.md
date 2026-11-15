@@ -210,3 +210,14 @@
 | Complete security documentation published in `SECURITY.md` | `SECURITY.md` | Complete | Published and verified. |
 | Zero-emoji interface verified across 100% of codebase | All project files | Complete | Verified via strict Unicode scan. |
 | Full regression verification across all 189 tests | All 10 test suites | Complete | 189/189 tests passing in 79.4s. |
+| **Phase 11: Proactive Email Reminders & Passcode Access** | | | |
+| 4-digit Passcode / PIN authentication for elderly accessibility | `database.py`, `services/auth_service.py`, `views/auth_view.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_01`, `test_02`). |
+| Update and configure user passcode from profile | `services/user_service.py`, `views/profile_view.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_05`, `test_06`). |
+| Proactive email reminders for upcoming doses | `services/email_service.py`, `services/reminder_service.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_07`). |
+| Proactive email notifications for missed/overdue medications | `services/email_service.py`, `services/reminder_service.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_08`). |
+| Proactive email reminders for medical appointments (24h and 1h) | `services/email_service.py`, `services/appointment_service.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_09`). |
+| Outbound email logging, delivery tracking & statistics | `services/email_service.py`, `views/notification_view.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_10`). |
+| Evaluator email test buttons & HTML preview | `views/notification_view.py` | Complete | Interactive 1-click test buttons in Notification Center. |
+| Brute-force sign-in rate limiting (OWASP A07 Compliance) | `database.py`, `services/auth_service.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_11`). |
+| High-performance SQLite engine (WAL mode, NORMAL sync, 64MB cache) | `database.py` | Complete | High concurrency and reduced I/O overhead. |
+| 30-second UI rerun synchronization throttling | `app.py` | Complete | Eliminates redundant database reads on Streamlit interactions. |

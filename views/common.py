@@ -1,3 +1,4 @@
+import html
 import streamlit as st
 
 DEARLY_CSS = """
@@ -468,16 +469,18 @@ def inject_custom_styles():
     st.markdown(DEARLY_CSS, unsafe_allow_html=True)
 
 def render_hero_header(title: str, subtitle: str, role_badge: str = None):
-    badge_html = f'<span class="role-tag">{role_badge}</span>' if role_badge else ''
+    s_title = html.escape(str(title))
+    s_sub = html.escape(str(subtitle))
+    s_badge = f'<span class="role-tag">{html.escape(str(role_badge))}</span>' if role_badge else ''
     st.markdown(f"""
     <div class="dearly-hero-header">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
             <div>
-                <h1>{title}</h1>
-                <p>{subtitle}</p>
+                <h1>{s_title}</h1>
+                <p>{s_sub}</p>
             </div>
             <div>
-                {badge_html}
+                {s_badge}
             </div>
         </div>
     </div>

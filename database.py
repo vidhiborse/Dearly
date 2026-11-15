@@ -6,12 +6,29 @@ from datetime import datetime, date, timedelta
 
 DB_DIR = Path(__file__).parent / "data"
 DB_PATH = DB_DIR / "dearly.db"
+DB_DIR.mkdir(parents=True, exist_ok=True)
+
+# In-memory rate limiting against brute-force attacks (OWASP Compliance)
+_FAILED_LOGIN_ATTEMPTS: dict[str, int] = {}
+_LOGIN_LOCKOUT_UNTIL: dict[str, float] = {}
 
 def get_connection():
-    DB_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    """
+    Returns an optimized SQLite database connection configured with:
+    - WAL journal mode for non-blocking concurrent reads and writes
+    - Normal synchronous mode for reduced disk I/O bottlenecks
+    - 64MB memory page cache
+    - 5000ms busy timeout to prevent database lock contention
+    - Enforced Foreign Key integrity constraints
+    """
+    conn = sqlite3.connect(DB_PATH, timeout=20.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA cache_size = -64000")
+    conn.execute("PRAGMA temp_store = MEMORY")
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 def hash_password(password: str) -> str:
@@ -380,6 +397,10 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_care_notes_elderly ON care_notes(elderly_user_id, is_archived);
         CREATE INDEX IF NOT EXISTS idx_appt_reminders_user ON appointment_reminders(user_id, is_sent);
         CREATE INDEX IF NOT EXISTS idx_appt_reminders_appt ON appointment_reminders(appointment_id, reminder_type);
+        CREATE INDEX IF NOT EXISTS idx_users_passcode ON users(passcode);
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+        CREATE INDEX IF NOT EXISTS idx_sim_rem_eld ON simulated_reminders(elderly_user_id, sent_at);
+        CREATE INDEX IF NOT EXISTS idx_sim_rem_email ON simulated_reminders(recipient_email);
         """)
 
         # Migration: Ensure appointments table accommodates 'missed' status and new fields
@@ -422,6 +443,7 @@ def init_db():
             conn.execute("ALTER TABLE appointments_migrated RENAME TO appointments")
 
         ensure_column(conn, "users", "phone", "TEXT")
+        ensure_column(conn, "users", "passcode", "TEXT DEFAULT '1234'")
         ensure_column(conn, "users", "updated_at", "TEXT")
         ensure_column(conn, "elderly_profiles", "blood_group", "TEXT")
         ensure_column(conn, "elderly_profiles", "allergies", "TEXT")
@@ -505,23 +527,32 @@ def init_db():
 
 def create_demo_users():
     demo_users = [
-        ("Asha Patil", "elderly@dearly.demo", "demo123", "elderly", "+91 98201 11000"),
-        ("Rahul Patil", "caregiver@dearly.demo", "demo123", "caregiver", "+91 98200 12345"),
-        ("Neha Patil", "family@dearly.demo", "demo123", "family", "+91 98200 54321"),
+        ("Asha Patil", "elderly@dearly.demo", "demo123", "elderly", "+91 98201 11000", "1234"),
+        ("Rahul Patil", "caregiver@dearly.demo", "demo123", "caregiver", "+91 98200 12345", "2345"),
+        ("Neha Patil", "family@dearly.demo", "demo123", "family", "+91 98200 54321", "3456"),
     ]
     with get_connection() as conn:
-        for name, email, password, role, phone in demo_users:
+        for name, email, password, role, phone, passcode in demo_users:
             conn.execute(
-                """INSERT OR IGNORE INTO users (name, email, password_hash, role, phone)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (name, email, hash_password(password), role, phone),
+                """INSERT OR IGNORE INTO users (name, email, password_hash, role, phone, passcode)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (name, email, hash_password(password), role, phone, passcode),
             )
-            # Upgrade existing demo user if legacy hash is detected
-            existing = conn.execute("SELECT id, password_hash FROM users WHERE email = ?", (email,)).fetchone()
+            # Upgrade existing demo user if legacy hash or demo passcode is detected
+            existing = conn.execute("SELECT id, password_hash, passcode FROM users WHERE email = ?", (email,)).fetchone()
             if existing:
                 h = existing["password_hash"]
+                updates = []
+                params = []
                 if not (h.startswith("$2a$") or h.startswith("$2b$") or h.startswith("$2y$")):
-                    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), existing["id"]))
+                    updates.append("password_hash = ?")
+                    params.append(hash_password(password))
+                if existing["passcode"] != passcode:
+                    updates.append("passcode = ?")
+                    params.append(passcode)
+                if updates:
+                    params.append(existing["id"])
+                    conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
 
         elderly = conn.execute("SELECT id FROM users WHERE email = ?", ("elderly@dearly.demo",)).fetchone()
         caregiver = conn.execute("SELECT id FROM users WHERE email = ?", ("caregiver@dearly.demo",)).fetchone()
@@ -729,17 +760,77 @@ def create_demo_users():
                     )
 
 
+def check_login_rate_limit(email: str) -> tuple[bool, str]:
+    """Protects against brute force credential stuffing attacks (OWASP A07)."""
+    norm_email = email.strip().lower()
+    now = datetime.now().timestamp()
+    locked_until = _LOGIN_LOCKOUT_UNTIL.get(norm_email, 0)
+    if now < locked_until:
+        remaining = int(locked_until - now)
+        return False, f"Too many consecutive failed sign-in attempts. Account temporarily locked for {remaining} seconds to protect user safety."
+    return True, ""
+
+
+def record_failed_login(email: str):
+    norm_email = email.strip().lower()
+    now = datetime.now().timestamp()
+    count = _FAILED_LOGIN_ATTEMPTS.get(norm_email, 0) + 1
+    _FAILED_LOGIN_ATTEMPTS[norm_email] = count
+    if count >= 8:
+        _LOGIN_LOCKOUT_UNTIL[norm_email] = now + 300  # 5 min lockout
+        _FAILED_LOGIN_ATTEMPTS[norm_email] = 0
+
+
+def clear_failed_login(email: str):
+    norm_email = email.strip().lower()
+    _FAILED_LOGIN_ATTEMPTS.pop(norm_email, None)
+    _LOGIN_LOCKOUT_UNTIL.pop(norm_email, None)
+
+
 def authenticate_user(email: str, password: str):
+    norm_email = email.strip().lower()
+    allowed, msg = check_login_rate_limit(norm_email)
+    if not allowed:
+        return None
+
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT id, name, email, password_hash, role, phone, created_at FROM users WHERE LOWER(email) = LOWER(?)",
-            (email.strip(),),
+            "SELECT id, name, email, password_hash, role, phone, passcode, created_at FROM users WHERE LOWER(email) = LOWER(?)",
+            (norm_email,),
         ).fetchone()
         if row and verify_password(password, row["password_hash"]):
+            clear_failed_login(norm_email)
             current_hash = row["password_hash"]
             if not (current_hash.startswith("$2a$") or current_hash.startswith("$2b$") or current_hash.startswith("$2y$")):
                 new_hash = hash_password(password)
                 conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, row["id"]))
+            user = dict(row)
+            user.pop("password_hash", None)
+            return user
+
+        record_failed_login(norm_email)
+        return None
+
+
+def authenticate_with_passcode(passcode: str) -> dict | None:
+    """
+    Direct passcode / PIN authentication designed specifically for elderly accessibility.
+    Allows seniors to access their care profile using a 4-digit numeric passcode without typing passwords.
+    """
+    clean_pin = passcode.strip()
+    if not clean_pin or len(clean_pin) < 4:
+        return None
+
+    with get_connection() as conn:
+        row = conn.execute(
+            """SELECT id, name, email, role, phone, passcode, created_at
+               FROM users
+               WHERE passcode = ?
+               ORDER BY id ASC
+               LIMIT 1""",
+            (clean_pin,),
+        ).fetchone()
+        if row:
             user = dict(row)
             user.pop("password_hash", None)
             return user

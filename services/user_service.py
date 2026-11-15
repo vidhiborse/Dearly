@@ -43,9 +43,10 @@ def register_user(
     password: str,
     confirm_password: str,
     role: str,
+    passcode: str = "1234",
 ):
     """
-    Registers a new user into SQLite with bcrypt password hashing.
+    Registers a new user into SQLite with bcrypt password hashing and accessible passcode PIN.
     Returns (success: bool, user_or_message: dict | str).
     """
     is_valid, err_msg = validate_registration_input(
@@ -62,6 +63,7 @@ def register_user(
     clean_email = email.strip().lower()
     clean_name = name.strip()
     clean_phone = phone.strip()
+    clean_passcode = passcode.strip() if passcode and passcode.strip().isdigit() else "1234"
 
     with get_connection() as conn:
         # Check for existing email (case-insensitive)
@@ -76,9 +78,9 @@ def register_user(
         pw_hash = hash_password(password)
 
         cursor = conn.execute(
-            """INSERT INTO users (name, email, password_hash, role, phone, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""",
-            (clean_name, clean_email, pw_hash, role, clean_phone),
+            """INSERT INTO users (name, email, password_hash, role, phone, passcode, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""",
+            (clean_name, clean_email, pw_hash, role, clean_phone, clean_passcode),
         )
         user_id = cursor.lastrowid
 
@@ -110,7 +112,7 @@ def get_user_profile(user_id: int):
     """Retrieves safe user profile dictionary (excluding password hash)."""
     with get_connection() as conn:
         row = conn.execute(
-            """SELECT id, name, email, phone, role, created_at, updated_at
+            """SELECT id, name, email, phone, role, passcode, created_at, updated_at
                FROM users WHERE id = ?""",
             (user_id,),
         ).fetchone()
@@ -141,3 +143,20 @@ def update_user_profile(user_id: int, name: str, phone: str):
         )
 
     return True, "Profile details updated successfully."
+
+def update_user_passcode(user_id: int, passcode: str) -> tuple[bool, str]:
+    """
+    Updates user's 4-digit PIN / Passcode for accessible authentication.
+    Validates numeric constraint and length between 4 and 6 digits.
+    """
+    clean_pin = (passcode or "").strip()
+    if not clean_pin.isdigit() or len(clean_pin) < 4 or len(clean_pin) > 6:
+        return False, "Passcode must be between 4 and 6 numeric digits (e.g. 1234)."
+
+    with get_connection() as conn:
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn.execute(
+            "UPDATE users SET passcode = ?, updated_at = ? WHERE id = ?",
+            (clean_pin, now_str, user_id),
+        )
+    return True, "Passcode updated successfully."

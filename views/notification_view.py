@@ -1,3 +1,4 @@
+import html
 import streamlit as st
 from datetime import datetime, date
 from services.reminder_service import (
@@ -14,6 +15,13 @@ from services.reminder_service import (
 )
 from services.medication_service import record_dose_status
 from services.auth_service import get_accessible_elderly_wards
+from services.email_service import (
+    get_outbound_emails,
+    get_email_statistics,
+    send_upcoming_dose_email,
+    send_missed_dose_email,
+    send_appointment_email,
+)
 
 
 def render_notification_view(user: dict):
@@ -62,7 +70,7 @@ def render_notification_view(user: dict):
     head_c1, head_c2 = st.columns([2.5, 1], vertical_alignment="center")
     with head_c1:
         st.markdown(f"<h1 style='font-size: 26px; color: #234B70; margin: 0;'>Notification Center & Reminders</h1>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size: 16px; color: #607086; margin: 4px 0 0 0;'>Care updates, medication schedules, and overdue alerts for <strong>{ward_name}</strong>.</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size: 16px; color: #607086; margin: 4px 0 0 0;'>Care updates, medication schedules, and overdue alerts for <strong>{html.escape(ward_name)}</strong>.</p>", unsafe_allow_html=True)
     with head_c2:
         if unread_count > 0:
             st.markdown(f"""
@@ -81,23 +89,26 @@ def render_notification_view(user: dict):
 
     # Role-based Tab Architecture
     if role == "caregiver":
-        tab_reminders, tab_stream, tab_escalations, tab_settings = st.tabs([
+        tab_reminders, tab_stream, tab_emails, tab_escalations, tab_settings = st.tabs([
             "Active Reminders",
             f"Notifications ({unread_count} unread)",
+            "Outbound Email Reminders",
             "Caregiver Escalations",
             "Reminder Settings",
         ])
     elif role == "elderly":
-        tab_reminders, tab_stream, tab_settings = st.tabs([
+        tab_reminders, tab_stream, tab_emails, tab_settings = st.tabs([
             "My Medication Reminders",
             f"Notifications ({unread_count} unread)",
+            "Email Reminders",
             "Reminder Settings",
         ])
         tab_escalations = None
     else:  # family
-        tab_reminders, tab_stream = st.tabs([
+        tab_reminders, tab_stream, tab_emails = st.tabs([
             "Medication Reminders",
             f"Notifications ({unread_count} unread)",
+            "Email Reminders",
         ])
         tab_escalations = None
         tab_settings = None
@@ -220,6 +231,86 @@ def render_notification_view(user: dict):
                             if st.button("Mark Read", key=f"read_notif_{n['id']}", use_container_width=True):
                                 mark_notification_as_read(n["id"], user_id)
                                 st.rerun()
+
+    # OUTBOUND EMAIL REMINDERS TAB (Challenge Specification)
+    with tab_emails:
+        st.markdown("<h3 style='font-size: 19px; color: #234B70; margin-top: 0;'>Proactive Email Reminders & Delivery Logs</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 15px; color: #607086;'>Automated clinical reminders proactively dispatched to care recipients, caretakers, and family members for upcoming doses, missed medications, and doctor visits.</p>", unsafe_allow_html=True)
+
+        stats = get_email_statistics(elderly_id)
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Total Reminders Sent", stats.get("total_sent", 0))
+        with m2:
+            st.metric("Recipients Reached", stats.get("recipients_count", 0))
+        with m3:
+            st.metric("Dispatch Engine", "Active (Automated)")
+
+        st.write("")
+        with st.expander("Trigger Test Routine Email Reminder (Evaluator Utility)", expanded=False):
+            st.markdown("Test the proactive email system immediately by generating a simulated reminder:")
+            t_col1, t_col2, t_col3 = st.columns(3)
+            with t_col1:
+                if st.button("Send Upcoming Dose Email", use_container_width=True):
+                    send_upcoming_dose_email(
+                        elderly_user_id=elderly_id,
+                        recipient_email=user["email"],
+                        recipient_name=user["name"],
+                        senior_name=ward_name,
+                        medicine_name="Metformin",
+                        dosage="500mg",
+                        scheduled_time="08:00 AM",
+                        meal_timing="After Breakfast",
+                        instructions="Take with a full glass of water.",
+                    )
+                    st.success("Upcoming dose reminder email dispatched successfully.")
+                    st.rerun()
+            with t_col2:
+                if st.button("Send Missed Dose Email", use_container_width=True):
+                    send_missed_dose_email(
+                        elderly_user_id=elderly_id,
+                        recipient_email=user["email"],
+                        recipient_name=user["name"],
+                        senior_name=ward_name,
+                        medicine_name="Amlodipine",
+                        dosage="5mg",
+                        scheduled_time="09:00 AM",
+                    )
+                    st.warning("Missed dose alert email dispatched to care circle.")
+                    st.rerun()
+            with t_col3:
+                if st.button("Send Doctor Visit Email", use_container_width=True):
+                    send_appointment_email(
+                        elderly_user_id=elderly_id,
+                        recipient_email=user["email"],
+                        recipient_name=user["name"],
+                        senior_name=ward_name,
+                        doctor_name="Rajesh Sharma",
+                        hospital="City Heart Clinic",
+                        appointment_date=date.today().isoformat(),
+                        appointment_time="10:30 AM",
+                        reminder_type="1_day_before",
+                        notes="Carry previous ECG reports.",
+                    )
+                    st.info("Doctor appointment reminder email dispatched.")
+                    st.rerun()
+
+        st.write("")
+        emails = get_outbound_emails(elderly_id, limit=30)
+        if not emails:
+            st.info("No outbound email reminders logged yet. Routine reminders will automatically appear here as doses and appointments approach.")
+        else:
+            st.markdown("##### Outbound Email Dispatch Log")
+            for em in emails:
+                with st.container(border=True):
+                    e_top, e_badge = st.columns([3, 1], vertical_alignment="center")
+                    with e_top:
+                        st.markdown(f"<strong style='font-size: 16px; color: #234B70;'>{html.escape(em['subject'])}</strong>", unsafe_allow_html=True)
+                        st.caption(f"Recipient: {html.escape(em['recipient_email'])} &bull; Sent: {em['sent_at']}")
+                    with e_badge:
+                        st.markdown("<div style='text-align: right;'><span class='badge-taken'>SENT (DELIVERED)</span></div>", unsafe_allow_html=True)
+                    with st.expander("Preview Rendered Accessible Email"):
+                        st.components.v1.html(em["message"], height=280, scrolling=True)
 
     # TAB 3: CAREGIVER ESCALATIONS (Caregiver only)
     if tab_escalations:

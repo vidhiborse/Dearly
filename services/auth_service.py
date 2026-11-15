@@ -1,10 +1,17 @@
 import sqlite3
-from database import get_connection, authenticate_user
+from database import get_connection, authenticate_user, authenticate_with_passcode
 from services.permissions import can_access_elderly_record
 
 def authenticate(email: str, password: str):
     """Authenticates email and password using secure bcrypt hash verification."""
     return authenticate_user(email, password)
+
+def authenticate_passcode(passcode: str):
+    """
+    Direct passcode / PIN authentication designed specifically for elderly accessibility.
+    Allows seniors and care circle members to access their profile securely using a numeric PIN.
+    """
+    return authenticate_with_passcode(passcode)
 
 def get_user_by_id(user_id: int):
     with get_connection() as conn:

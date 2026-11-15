@@ -1,5 +1,5 @@
 import streamlit as st
-from services.auth_service import authenticate
+from services.auth_service import authenticate, authenticate_passcode
 from services.user_service import register_user
 from views.common import render_clinical_disclaimer
 
@@ -12,7 +12,12 @@ def render_auth_view():
     </div>
     """, unsafe_allow_html=True)
 
-    tab_signin, tab_register, tab_about = st.tabs(["Sign In", "Create Account", "About the Platform"])
+    tab_signin, tab_passcode, tab_register, tab_about = st.tabs([
+        "Sign In (Email)",
+        "Passcode Access (PIN)",
+        "Create Account",
+        "About the Platform",
+    ])
 
     # 1. SIGN IN TAB
     with tab_signin:
@@ -72,6 +77,60 @@ def render_auth_view():
                             st.rerun()
                         else:
                             st.error("Invalid email or password. Please verify your credentials.")
+
+    # 2. PASSCODE / PIN TAB (Challenge Specification)
+    with tab_passcode:
+        p_c1, p_c2 = st.columns([1.1, 1], gap="large")
+        with p_c1:
+            with st.container(border=True):
+                st.markdown("<h2 style='margin: 0 0 4px 0; font-size: 20px; color: #234B70;'>Secure Passcode / PIN Access</h2>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 14px;'>Designed specifically for older adults and care circle members. Sign in quickly using your personal 4-digit numeric passcode without typing passwords.</p>", unsafe_allow_html=True)
+
+                with st.form("passcode_login_form"):
+                    pin_input = st.text_input("Enter 4-Digit Passcode (PIN)", type="password", max_chars=6, placeholder="e.g. 1234")
+                    pin_submit = st.form_submit_button("Sign In with Passcode", use_container_width=True, type="primary")
+
+                if pin_submit:
+                    if not pin_input:
+                        st.error("Please enter your 4-digit passcode.")
+                    else:
+                        user = authenticate_passcode(pin_input)
+                        if user:
+                            st.session_state.user = user
+                            st.session_state.selected_ward_id = user["id"] if user["role"] == "elderly" else None
+                            st.session_state.current_page = "Home" if user["role"] == "elderly" else "Overview"
+                            st.rerun()
+                        else:
+                            st.error("Incorrect passcode. Please check your PIN or sign in with email and password.")
+
+        with p_c2:
+            with st.container(border=True):
+                st.markdown("<h3 style='margin: 0 0 6px 0; font-size: 18px; color: #234B70;'>Pre-Configured Demo PINs</h3>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 15px; color: #607086; margin-bottom: 12px;'>Click any test account to authenticate instantly via passcode verification:</p>", unsafe_allow_html=True)
+
+                if st.button("Asha Patil — PIN: 1234 (Elderly)", use_container_width=True):
+                    user = authenticate_passcode("1234")
+                    if user:
+                        st.session_state.user = user
+                        st.session_state.selected_ward_id = user["id"]
+                        st.session_state.current_page = "Home"
+                        st.rerun()
+
+                st.write("")
+                if st.button("Rahul Patil — PIN: 2345 (Caregiver)", use_container_width=True):
+                    user = authenticate_passcode("2345")
+                    if user:
+                        st.session_state.user = user
+                        st.session_state.current_page = "Overview"
+                        st.rerun()
+
+                st.write("")
+                if st.button("Neha Patil — PIN: 3456 (Family)", use_container_width=True):
+                    user = authenticate_passcode("3456")
+                    if user:
+                        st.session_state.user = user
+                        st.session_state.current_page = "Overview"
+                        st.rerun()
 
     # 2. CREATE ACCOUNT TAB
     with tab_register:

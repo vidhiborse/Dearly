@@ -529,6 +529,24 @@ def sync_appointment_reminders(
                                 f"{elderly_name} has an appointment tomorrow with {doc_name} ({spec}) at {hospital} on {appt_date} at {appt_time}. Reason: {reason}.",
                             ),
                         )
+                        try:
+                            from services.email_service import send_appointment_email
+                            u_rec = conn.execute("SELECT name, email FROM users WHERE id = ?", (uid,)).fetchone()
+                            if u_rec and u_rec["email"]:
+                                send_appointment_email(
+                                    elderly_user_id=e_id,
+                                    recipient_email=u_rec["email"],
+                                    recipient_name=u_rec["name"],
+                                    senior_name=elderly_name,
+                                    doctor_name=doc_name,
+                                    hospital=hospital,
+                                    appointment_date=appt_date,
+                                    appointment_time=appt_time,
+                                    reminder_type="1_day_before",
+                                    notes=a["notes"] or "",
+                                )
+                        except Exception:
+                            pass
 
             # 2. One Hour Before Reminder (within [appt_dt - 1h, appt_dt])
             one_hour_window_start = appt_dt - timedelta(hours=1)
@@ -553,6 +571,24 @@ def sync_appointment_reminders(
                                 f"Reminder: {elderly_name}'s appointment with {doc_name} is in 1 hour ({appt_time}) at {hospital}.",
                             ),
                         )
+                        try:
+                            from services.email_service import send_appointment_email
+                            u_rec = conn.execute("SELECT name, email FROM users WHERE id = ?", (uid,)).fetchone()
+                            if u_rec and u_rec["email"]:
+                                send_appointment_email(
+                                    elderly_user_id=e_id,
+                                    recipient_email=u_rec["email"],
+                                    recipient_name=u_rec["name"],
+                                    senior_name=elderly_name,
+                                    doctor_name=doc_name,
+                                    hospital=hospital,
+                                    appointment_date=appt_date,
+                                    appointment_time=appt_time,
+                                    reminder_type="1_hour_before",
+                                    notes=a["notes"] or "",
+                                )
+                        except Exception:
+                            pass
 
     return counts
 

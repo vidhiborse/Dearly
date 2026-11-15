@@ -260,7 +260,7 @@ def sync_reminders_and_escalations(
 
             if status == "due_now" and reminders_enabled:
                 counts["due_now"] += 1
-                conn.execute(
+                cursor = conn.execute(
                     """INSERT OR IGNORE INTO notifications
                        (user_id, elderly_user_id, alert_type, title, message, medication_id, scheduled_date, scheduled_time)
                        VALUES (?, ?, 'due_now', ?, ?, ?, ?, ?)""",
@@ -274,6 +274,24 @@ def sync_reminders_and_escalations(
                         sched_time,
                     ),
                 )
+                if cursor.rowcount > 0:
+                    try:
+                        from services.email_service import send_upcoming_dose_email
+                        u_row = conn.execute("SELECT name, email FROM users WHERE id = ?", (elderly_user_id,)).fetchone()
+                        if u_row and u_row["email"]:
+                            send_upcoming_dose_email(
+                                elderly_user_id=elderly_user_id,
+                                recipient_email=u_row["email"],
+                                recipient_name=u_row["name"],
+                                senior_name=elderly_name,
+                                medicine_name=med_name,
+                                dosage=dosage,
+                                scheduled_time=formatted_time,
+                                meal_timing=rem.get("meal_timing") or "After Meal",
+                                instructions=instructions,
+                            )
+                    except Exception:
+                        pass
 
             elif status == "overdue":
                 counts["overdue"] += 1
@@ -307,6 +325,20 @@ def sync_reminders_and_escalations(
                         )
                         if cursor.rowcount > 0:
                             counts["escalated"] += 1
+                            try:
+                                from services.email_service import send_missed_dose_email
+                                if cg.get("email"):
+                                    send_missed_dose_email(
+                                        elderly_user_id=elderly_user_id,
+                                        recipient_email=cg["email"],
+                                        recipient_name=cg.get("name", "Caregiver"),
+                                        senior_name=elderly_name,
+                                        medicine_name=med_name,
+                                        dosage=dosage,
+                                        scheduled_time=formatted_time,
+                                    )
+                            except Exception:
+                                pass
 
                         # Insert notification for caregiver
                         conn.execute(

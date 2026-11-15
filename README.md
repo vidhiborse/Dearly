@@ -24,13 +24,13 @@ Dearly connects all three stakeholders in a **closed-loop healthcare ecosystem**
 
 The platform includes pre-seeded realistic healthcare data for immediate jury and peer evaluation:
 
-| Role | Name | Email | Password | Access Details |
-|---|---|---|---|---|
-| **Elderly** | Asha Patil (Age 74) | `elderly@dearly.demo` | `demo123` | Accessible routine, large confirmation buttons, SOS button, care circle invitations |
-| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | `demo123` | Primary caregiver lead, medication CRUD, care notes, missed dose alerts |
-| **Family** | Neha Patil (Daughter) | `family@dearly.demo` | `demo123` | Observability, Plotly adherence charts, shared care notes, care briefing |
+| Role | Name | Email | Password | Passcode (PIN) | Access Details |
+|---|---|---|---|---|---|
+| **Elderly** | Asha Patil (Age 74) | `elderly@dearly.demo` | `demo123` | `1234` | Accessible routine, large confirmation buttons, SOS button, care circle invitations |
+| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | `demo123` | `2345` | Primary caregiver lead, medication CRUD, care notes, missed dose alerts |
+| **Family** | Neha Patil (Daughter) | `family@dearly.demo` | `demo123` | `3456` | Observability, Plotly adherence charts, shared care notes, care briefing |
 
-*Tip: A role switcher is available directly in the sidebar for instant evaluation across all 3 perspectives without re-typing passwords.*
+*Tip: Users can authenticate either with Email/Password or directly with a 4-Digit Passcode (PIN) specifically engineered for elderly accessibility. A role switcher is also available directly in the sidebar for instant evaluation across all 3 perspectives.*
 
 ---
 
@@ -59,6 +59,7 @@ dearly/
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
 ├── SECURITY.md                 # Security architecture, threat model, RBAC and QA documentation
+├── test_phase11_email_and_passcode.py # Phase 11 Proactive Email Reminders & Passcode Access (11 tests)
 ├── test_phase10_security_qa.py # Phase 10 Security Hardening & Workflows A-F integration test suite (26 tests)
 ├── test_phase9_analytics.py    # Phase 9 Analytics & Reports test suite (26 tests)
 ├── test_phase8_emergency.py    # Phase 8 Emergency SOS & Contacts test suite (20 tests)
@@ -80,6 +81,7 @@ dearly/
 │   ├── permissions.py          # Role-based access control (RBAC) & cross-patient guards
 │   ├── medication_service.py   # Medication CRUD, daily schedule computation, dose status, adherence
 │   ├── reminder_service.py     # Deterministic reminder engine, notifications & caregiver escalation
+│   ├── email_service.py        # Proactive email reminders (upcoming doses, missed alerts, doctor visits)
 │   ├── care_circle_service.py  # Care circle network, invitations, primary designation, care notes
 │   ├── appointment_service.py  # Doctor appointment management, scheduling, reminders, and history
 │   ├── health_service.py       # Health vitals logging, clinical validation, audit trails, charts & CSV export
@@ -157,8 +159,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all 189 automated tests across all 10 phases
-python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py test_phase10_security_qa.py
+# Run all 200 automated tests across all 11 phases
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py test_phase10_security_qa.py test_phase11_email_and_passcode.py
 ```
 
 ### 5. Launch Dearly
