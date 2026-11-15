@@ -85,3 +85,27 @@
 | In-app notification integration for circle events | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_18`). |
 | Existing medication and reminder regression verification | `test_phase3_meds.py`, `test_phase4_reminders.py` | Complete | Verified in `test_phase5_circle.py` (`test_19`). |
 | Complete care circle persistence across restart | `database.py` | Complete | Verified in `test_phase5_circle.py` (`test_20`). |
+| **Phase 6: Doctor Appointment Management** | | | |
+| Create appointment with all required fields | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_01`). |
+| Doctor name validation (min 2 characters) | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_02`). |
+| Hospital / Clinic name validation (min 2 characters) | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_03`). |
+| Date format validation (`YYYY-MM-DD`) | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_04`). |
+| Past appointment scheduling prevention | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_05`). |
+| Time format validation (12-hour/24-hour parsing) | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_06`). |
+| Support all standard appointment types | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_07`). |
+| Dedicated Appointments section across all roles | `app.py`, `views/appointment_view.py` | Complete | Verified in routing and navigation. |
+| Retrieve appointments by elderly ward id | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_08`). |
+| Filter appointments by status (`all`, `today`, `upcoming`, etc.) | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_09`). |
+| Filter appointments by custom date ranges | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_10`). |
+| Search appointments by doctor/clinic name | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_11`). |
+| Inspect single appointment details with creator metadata | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_12`). |
+| Edit appointment clinical notes & verify persistence | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_13`). |
+| Reschedule appointment with automatic reminder reset | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_14`). |
+| Cancel appointment with confirmation and reason | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_15`). |
+| Mark appointment completed with post-visit clinical notes | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_16`). |
+| Dual in-app reminders (1 day before, 1 hour before) | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_17`). |
+| Prevent duplicate reminders via unique constraints | `services/appointment_service.py`, `database.py` | Complete | Verified in `test_phase6_appts.py` (`test_18`). |
+| Zero reminders generated for cancelled or completed visits | `services/appointment_service.py` | Complete | Verified in `test_phase6_appts.py` (`test_19`). |
+| Family member read-only observation enforcement | `services/appointment_service.py`, `services/permissions.py` | Complete | Verified in `test_phase6_appts.py` (`test_20`). |
+| Calendar view & historical consultation archive | `services/appointment_service.py`, `views/appointment_view.py` | Complete | Verified in `test_phase6_appts.py` (`test_21`). |
+| Full regression verification across all 98 tests | All test suites | Complete | 98/98 tests passing in 36.2s. |

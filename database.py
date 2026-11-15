@@ -101,15 +101,39 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             elderly_user_id INTEGER NOT NULL,
             doctor_name TEXT NOT NULL,
+            specialization TEXT,
             hospital TEXT,
             appointment_date TEXT NOT NULL,
             appointment_time TEXT NOT NULL,
+            appointment_type TEXT DEFAULT 'General check-up',
+            location TEXT,
+            reason TEXT,
             purpose TEXT,
-            status TEXT DEFAULT 'upcoming' CHECK(status IN ('upcoming','completed','cancelled')),
             notes TEXT,
+            post_visit_notes TEXT,
+            status TEXT DEFAULT 'upcoming' CHECK(status IN ('upcoming','completed','cancelled','missed')),
             reminder_sent INTEGER DEFAULT 0,
+            created_by INTEGER,
+            updated_by INTEGER,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
             FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS appointment_reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            appointment_id INTEGER NOT NULL,
+            elderly_user_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            reminder_type TEXT NOT NULL CHECK(reminder_type IN ('1_day_before', '1_hour_before')),
+            scheduled_for TEXT NOT NULL,
+            is_sent INTEGER DEFAULT 0,
+            sent_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(appointment_id, user_id, reminder_type),
+            FOREIGN KEY(appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS health_readings (
@@ -262,7 +286,48 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_invitations_invitee ON care_invitations(invitee_email, status);
         CREATE INDEX IF NOT EXISTS idx_invitations_elderly ON care_invitations(elderly_user_id, status);
         CREATE INDEX IF NOT EXISTS idx_care_notes_elderly ON care_notes(elderly_user_id, is_archived);
+        CREATE INDEX IF NOT EXISTS idx_appt_reminders_user ON appointment_reminders(user_id, is_sent);
+        CREATE INDEX IF NOT EXISTS idx_appt_reminders_appt ON appointment_reminders(appointment_id, reminder_type);
         """)
+
+        # Migration: Ensure appointments table accommodates 'missed' status and new fields
+        appt_schema = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='appointments'").fetchone()
+        if appt_schema and "'missed'" not in appt_schema["sql"]:
+            conn.execute("""
+                CREATE TABLE appointments_migrated (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    elderly_user_id INTEGER NOT NULL,
+                    doctor_name TEXT NOT NULL,
+                    specialization TEXT,
+                    hospital TEXT,
+                    appointment_date TEXT NOT NULL,
+                    appointment_time TEXT NOT NULL,
+                    appointment_type TEXT DEFAULT 'General check-up',
+                    location TEXT,
+                    reason TEXT,
+                    purpose TEXT,
+                    notes TEXT,
+                    post_visit_notes TEXT,
+                    status TEXT DEFAULT 'upcoming' CHECK(status IN ('upcoming','completed','cancelled','missed')),
+                    reminder_sent INTEGER DEFAULT 0,
+                    created_by INTEGER,
+                    updated_by INTEGER,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT,
+                    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            """)
+            conn.execute("""
+                INSERT INTO appointments_migrated (
+                    id, elderly_user_id, doctor_name, hospital, appointment_date, appointment_time,
+                    purpose, reason, status, notes, reminder_sent, created_at
+                )
+                SELECT id, elderly_user_id, doctor_name, hospital, appointment_date, appointment_time,
+                       purpose, purpose, status, notes, reminder_sent, created_at
+                FROM appointments
+            """)
+            conn.execute("DROP TABLE appointments")
+            conn.execute("ALTER TABLE appointments_migrated RENAME TO appointments")
 
         ensure_column(conn, "users", "phone", "TEXT")
         ensure_column(conn, "users", "updated_at", "TEXT")
@@ -283,6 +348,14 @@ def init_db():
         ensure_column(conn, "care_circle", "is_primary", "INTEGER DEFAULT 0")
         ensure_column(conn, "care_circle", "created_by", "INTEGER")
         ensure_column(conn, "care_circle", "updated_at", "TEXT")
+        ensure_column(conn, "appointments", "specialization", "TEXT")
+        ensure_column(conn, "appointments", "appointment_type", "TEXT DEFAULT 'General check-up'")
+        ensure_column(conn, "appointments", "location", "TEXT")
+        ensure_column(conn, "appointments", "reason", "TEXT")
+        ensure_column(conn, "appointments", "post_visit_notes", "TEXT")
+        ensure_column(conn, "appointments", "created_by", "INTEGER")
+        ensure_column(conn, "appointments", "updated_by", "INTEGER")
+        ensure_column(conn, "appointments", "updated_at", "TEXT")
 
 def create_demo_users():
     demo_users = [

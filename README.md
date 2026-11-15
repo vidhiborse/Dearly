@@ -41,7 +41,7 @@ The platform includes pre-seeded realistic healthcare data for immediate jury an
 - **Security & Authentication**: [bcrypt](https://pypi.org/project/bcrypt/) with standard work factor 12 and salt generation.
 - **Data Persistence**: [SQLite3](https://sqlite.org/) with relational schema, foreign key enforcement, indexes, and idempotent migrations.
 - **Language**: Python 3.10+
-- **Testing**: Python standard library `unittest` suites (`test_phase2_auth.py`, `test_app.py`, `test_phase3_meds.py`, `test_phase4_reminders.py`, `test_phase5_circle.py`).
+- **Testing**: Python standard library `unittest` suites (`test_phase6_appts.py`, `test_phase5_circle.py`, `test_phase4_reminders.py`, `test_phase3_meds.py`, `test_phase2_auth.py`, `test_app.py`).
 
 ---
 
@@ -58,6 +58,7 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
+├── test_phase6_appts.py        # Phase 6 Doctor Appointments test suite (21 tests)
 ├── test_phase5_circle.py       # Phase 5 Family & Caregiver Circle test suite (20 tests)
 ├── test_phase4_reminders.py    # Phase 4 Reminders, Alerts & Escalation test suite (17 tests)
 ├── test_phase3_meds.py         # Phase 3 Medication Management test suite (17 tests)
@@ -75,7 +76,7 @@ dearly/
 │   ├── medication_service.py   # Medication CRUD, daily schedule computation, dose status, adherence
 │   ├── reminder_service.py     # Deterministic reminder engine, notifications & caregiver escalation
 │   ├── care_circle_service.py  # Care circle network, invitations, primary designation, care notes
-│   ├── appointment_service.py  # Doctor appointment management, scheduling, and completion
+│   ├── appointment_service.py  # Doctor appointment management, scheduling, reminders, and history
 │   ├── health_service.py       # Health vitals logging (BP, Blood Sugar, SpO2, Heart Rate, Weight)
 │   ├── activity_service.py     # Immutable audit trail, activity timeline & category filtering
 │   ├── emergency_service.py    # Emergency SOS alert dispatch, acknowledgment, and notifications
@@ -87,6 +88,7 @@ dearly/
     ├── auth_view.py            # Clean sign-in & registration with 1-click Quick Demo logins
     ├── profile_view.py         # User profile viewing and contact detail editing
     ├── care_circle_view.py     # Care circle network, invitations, primary caregiver & notes
+    ├── appointment_view.py     # Accessible doctor appointments dashboard, calendar & history
     ├── notification_view.py    # In-App Notification Center, reminder stream & escalation management
     ├── elderly_view.py         # High-contrast, large-button, accessible elderly interface
     ├── caregiver_view.py       # Care coordination, missed-dose escalation, medication & vitals CRUD

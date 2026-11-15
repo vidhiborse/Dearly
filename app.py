@@ -8,8 +8,10 @@ from views.family_view import render_family_view
 from views.profile_view import render_profile_view
 from views.notification_view import render_notification_view
 from views.care_circle_view import render_care_circle_view
+from views.appointment_view import render_appointment_view
 from services.permissions import can_view_page
 from services.reminder_service import sync_reminders_and_escalations, get_unread_notification_count
+from services.appointment_service import sync_appointment_reminders
 from services.care_circle_service import get_user_pending_invitations
 from services.auth_service import get_accessible_elderly_wards
 
@@ -50,10 +52,12 @@ if st.session_state.user:
     # Idempotent synchronization of reminders and overdue escalations on application load
     if role == "elderly":
         sync_reminders_and_escalations(user["id"], user=user)
+        sync_appointment_reminders(user["id"], user=user)
     else:
         accessible_wards = get_accessible_elderly_wards(user)
         for w in accessible_wards:
             sync_reminders_and_escalations(w["id"], user=user)
+            sync_appointment_reminders(w["id"], user=user)
 
     unread_notifs = get_unread_notification_count(user["id"])
     notif_nav_title = f"Reminders & Alerts ({unread_notifs})" if unread_notifs > 0 else "Reminders & Alerts"
@@ -143,6 +147,8 @@ if st.session_state.user:
         render_notification_view(user)
     elif selected_page == "Care Circle":
         render_care_circle_view(user)
+    elif selected_page == "Appointments":
+        render_appointment_view(user)
     elif role == "elderly":
         render_elderly_view(user, page=selected_page)
     elif role == "caregiver":

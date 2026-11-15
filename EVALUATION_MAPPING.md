@@ -73,6 +73,28 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
    - Inspect the chronological audit stream of real events.
    - Filter by event type (`Medication & Dose Confirmations`, `Reminders & Alerts`, `Care Circle Updates`, `Care Notes`).
 
+### Testing Doctor Appointment Management (Phase 6)
+1. **Appointments Navigation**:
+   - Click **"Appointments"** in the sidebar navigation across any role.
+2. **Upcoming Visits Tab**:
+   - Notice the prominent **"Today's Appointments"** banner if a visit is scheduled for today.
+   - Notice the multi-filter bar: filter by status (`all`, `today`, `upcoming`, `completed`, `cancelled`, `missed`), custom date ranges, and doctor/clinic name.
+   - Expand any visit card:
+     - See full clinical metadata (doctor specialization, clinic address, visit purpose, pre-visit notes).
+     - Test the **"Reschedule Visit"** action: Pick a new future date and time, click Reschedule, and see instant update and reminder reset.
+     - Test the **"Mark Completed & Add Visit Summary"** action: Enter doctor instructions and click Mark Completed.
+     - Test the **"Cancel Appointment"** action: Provide cancellation reason and confirm.
+3. **Schedule New Visit Tab**:
+   - As Senior or Caregiver (`elderly@dearly.demo` or `caregiver@dearly.demo`), fill out the accessible scheduling form.
+   - Enter Doctor Name (e.g., `Dr. Sarah Jenkins`), Specialization (`Cardiology`), Hospital (`Metro Care Heart Center`), Date, Time, Appointment Type (`Specialist consultation`), Location, and Reason.
+   - Submit and verify the visit appears immediately under Upcoming Visits and in the Care Activity timeline.
+4. **Calendar & Date View Tab**:
+   - Click **"Calendar & Date View"** to inspect appointments grouped by date on an agenda grid.
+5. **Visit History & Summaries Tab**:
+   - Inspect past, completed, cancelled, and missed visits with doctor instructions and post-visit notes.
+6. **Role-Based Permissions**:
+   - Switch to **Family Member (`family@dearly.demo`)**: Notice that the appointment schedule is visible for complete peace of mind, but modification and cancellation controls are disabled.
+
 ---
 
 ## 2. Evaluation Criteria Mapping
@@ -112,11 +134,19 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 - **Shared Care Notes with Privacy**: Granular visibility controls (`circle` for full circle, `caregivers_only` hidden from family viewers) in `care_notes`.
 - **Care Activity Timeline**: Complete chronological audit stream with category and date filtering in [services/activity_service.py](file:///d:/Dearly/services/activity_service.py).
 
-### Criterion 6: Automated Testing & Verification
+### Criterion 6: Doctor Appointment Management (Phase 6)
+- **Appointment Lifecycle & Scheduling**: Complete CRUD, date/time validation, past-date restriction, and support for 5 appointment types in [services/appointment_service.py](file:///d:/Dearly/services/appointment_service.py).
+- **Clinical Summaries**: Support for pre-visit reasons and post-visit doctor summaries / clinical instructions.
+- **Dual Deterministic Reminders**: 1-day-before and 1-hour-before in-app alerts dispatched to patient and care circle, with unique constraint duplicate suppression.
+- **Calendar & Historical Tracking**: Date-grouped appointment agenda and archived history in [views/appointment_view.py](file:///d:/Dearly/views/appointment_view.py).
+- **Server-Side RBAC**: Authorized modifications restricted to seniors and editor caregivers; read-only observability enforced for family members.
+
+### Criterion 7: Automated Testing & Verification
 - **Test Suites**:
+  - `test_phase6_appts.py`: 21 mandatory Phase 6 tests covering appointment CRUD, past-date validation, rescheduling, reminders, duplicate prevention, and RBAC.
   - `test_phase5_circle.py`: 20 mandatory Phase 5 tests covering invitation workflow, permission levels, care notes privacy, primary caregiver designation, and persistence.
   - `test_phase4_reminders.py`: 17 mandatory Phase 4 tests covering reminder statuses, grace period boundaries, caregiver escalation, and duplicate prevention.
   - `test_phase3_meds.py`: 17 mandatory Phase 3 tests covering CRUD, date validation, period grouping, and adherence mathematics.
   - `test_phase2_auth.py`: 15 authentication & RBAC unit tests.
   - `test_app.py`: 8 end-to-end integration tests.
-  - Total: **77 passing automated tests** with 0 errors and 0 failures.
+  - Total: **98 passing automated tests** with 0 errors and 0 failures.
