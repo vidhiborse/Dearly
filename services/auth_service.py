@@ -1,0 +1,52 @@
+import sqlite3
+from database import get_connection, hash_password
+
+def authenticate(email: str, password: str):
+    with get_connection() as conn:
+        user = conn.execute(
+            "SELECT id, name, email, role, phone FROM users WHERE email = ? AND password_hash = ?",
+            (email.strip().lower(), hash_password(password)),
+        ).fetchone()
+        return dict(user) if user else None
+
+def get_user_by_id(user_id: int):
+    with get_connection() as conn:
+        user = conn.execute(
+            "SELECT id, name, email, role, phone FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        return dict(user) if user else None
+
+def get_accessible_elderly_wards(user: dict):
+    """
+    Returns list of elderly users that the current user is permitted to view/manage.
+    For elderly: returns [self]
+    For caregiver/family: returns members linked via care_circle
+    """
+    if not user:
+        return []
+    
+    with get_connection() as conn:
+        if user["role"] == "elderly":
+            elderly = conn.execute(
+                """SELECT u.id, u.name, u.email, u.phone, ep.date_of_birth, ep.blood_group, 
+                          ep.emergency_contact, ep.allergies, ep.primary_physician, ep.primary_physician_phone, ep.notes
+                   FROM users u
+                   LEFT JOIN elderly_profiles ep ON ep.user_id = u.id
+                   WHERE u.id = ?""",
+                (user["id"],),
+            ).fetchone()
+            return [dict(elderly)] if elderly else []
+        else:
+            rows = conn.execute(
+                """SELECT u.id, u.name, u.email, u.phone, cc.relationship, cc.permission_level,
+                          ep.date_of_birth, ep.blood_group, ep.emergency_contact, ep.allergies,
+                          ep.primary_physician, ep.primary_physician_phone, ep.notes
+                   FROM care_circle cc
+                   JOIN users u ON cc.elderly_user_id = u.id
+                   LEFT JOIN elderly_profiles ep ON ep.user_id = u.id
+                   WHERE cc.member_user_id = ?
+                   ORDER BY u.name ASC""",
+                (user["id"],),
+            ).fetchall()
+            return [dict(r) for r in rows]
