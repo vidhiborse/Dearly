@@ -394,7 +394,7 @@ def render_emergency_view(user: dict):
                     n_prim = st.checkbox("Make Primary Emergency Contact")
                     n_notes = st.text_input("Notes (Optional)", placeholder="e.g. Has spare house key")
 
-                    submit_add = st.form_submit_button("Add Emergency Contact", type="primary")
+                    submit_add = st.form_submit_button("Add Emergency Contact", type="primary", use_container_width=True)
 
                     if submit_add:
                         try:

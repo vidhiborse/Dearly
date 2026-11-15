@@ -55,10 +55,12 @@ if st.session_state.user:
 
     # Idempotent synchronization of reminders and overdue escalations on application load
     if role == "elderly":
+        primary_ward_id = user["id"]
         sync_reminders_and_escalations(user["id"], user=user)
         sync_appointment_reminders(user["id"], user=user)
     else:
         accessible_wards = get_accessible_elderly_wards(user)
+        primary_ward_id = accessible_wards[0]["id"] if accessible_wards else None
         for w in accessible_wards:
             sync_reminders_and_escalations(w["id"], user=user)
             sync_appointment_reminders(w["id"], user=user)

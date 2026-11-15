@@ -20,11 +20,31 @@ DEARLY_CSS = """
     }
 
     /* Base text colors and sizes: 18px default as per Section 6 */
-    p, li, label, [data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li {
+    p, li, label {
         color: #243447;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
         font-size: 18px !important;
         line-height: 1.55 !important;
+    }
+
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li {
+        color: #243447;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-size: 18px !important;
+        line-height: 1.55 !important;
+    }
+
+    /* Exclude button elements from the 18px body paragraph override */
+    button [data-testid="stMarkdownContainer"] p,
+    button [data-testid="stMarkdownContainer"] span,
+    button [data-testid="stMarkdownContainer"] li,
+    button p,
+    button span,
+    [data-testid*="stBaseButton"] p,
+    [data-testid*="stBaseButton"] span {
+        font-size: 16px !important;
+        line-height: 1.3 !important;
     }
 
     h1 {
@@ -140,56 +160,190 @@ DEARLY_CSS = """
         font-weight: 600;
     }
 
-    /* Buttons: Beautiful, clean, single-bordered design */
-    div.stButton > button {
+    /* =========================================================================
+       COMPREHENSIVE STREAMLIT BUTTON STYLES (Form Submit & Standard Buttons)
+       Eliminates dark-on-dark unreadable text across the entire application.
+       ========================================================================= */
+
+    /* All Buttons Common Base */
+    div[data-testid="stButton"] > button,
+    div[data-testid="stFormSubmitButton"] > button,
+    div[data-testid="stDownloadButton"] > button,
+    button[data-testid="stBaseButton-primary"],
+    button[data-testid="stBaseButton-secondary"],
+    button[data-testid*="stBaseButton"],
+    div[data-testid="stSidebar"] button,
+    .stButton > button {
         min-height: 48px !important;
         border-radius: 8px !important;
-        padding: 0.55rem 1.3rem !important;
+        padding: 0.6rem 1.4rem !important;
         font-size: 16px !important;
-        font-weight: 600 !important;
-        border: 1px solid #234B70 !important;
-        background-color: #FFFFFF !important;
-        color: #234B70 !important;
+        font-weight: 700 !important;
         box-shadow: none !important;
         outline: none !important;
         transition: all 0.15s ease-in-out !important;
         text-align: center !important;
+        cursor: pointer !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        letter-spacing: 0.2px !important;
     }
 
-    /* Ensure NO child elements inside buttons have borders, outlines, or extra backgrounds */
-    div.stButton > button * {
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        color: inherit !important;
-        font-size: 16px !important;
-    }
-
-    /* Hover for default/secondary */
-    div.stButton > button:hover {
-        background-color: #F0F6FC !important;
-        border-color: #193B5A !important;
-        color: #193B5A !important;
-    }
-
-    /* Primary Button */
-    div.stButton > button[kind="primary"] {
+    /* PRIMARY BUTTONS: Form submit & regular action buttons */
+    button[data-testid="stBaseButton-primary"],
+    button[kind="primary"],
+    button[kind="primaryFormSubmit"],
+    div[data-testid="stButton"] > button[kind="primary"],
+    div[data-testid="stButton"] > button[data-testid="stBaseButton-primary"],
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"],
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"],
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"],
+    .stButton > button[kind="primary"],
+    .stButton > button[data-testid="stBaseButton-primary"] {
         background-color: #234B70 !important;
         border: 1px solid #234B70 !important;
         color: #FFFFFF !important;
     }
 
-    div.stButton > button[kind="primary"]:hover {
+    /* PRIMARY BUTTON TEXT: Strict, absolute white (#FFFFFF) with high contrast */
+    button[data-testid="stBaseButton-primary"] *,
+    button[data-testid="stBaseButton-primary"] p,
+    button[data-testid="stBaseButton-primary"] span,
+    button[data-testid="stBaseButton-primary"] div,
+    button[data-testid="stBaseButton-primary"] [data-testid="stMarkdownContainer"],
+    button[data-testid="stBaseButton-primary"] [data-testid="stMarkdownContainer"] p,
+    button[kind="primary"] *,
+    button[kind="primary"] p,
+    button[kind="primary"] span,
+    button[kind="primary"] div,
+    button[kind="primary"] [data-testid="stMarkdownContainer"],
+    button[kind="primary"] [data-testid="stMarkdownContainer"] p,
+    button[kind="primaryFormSubmit"] *,
+    button[kind="primaryFormSubmit"] p,
+    button[kind="primaryFormSubmit"] span,
+    button[kind="primaryFormSubmit"] div,
+    button[kind="primaryFormSubmit"] [data-testid="stMarkdownContainer"],
+    button[kind="primaryFormSubmit"] [data-testid="stMarkdownContainer"] p,
+    div[data-testid="stButton"] > button[kind="primary"] *,
+    div[data-testid="stButton"] > button[kind="primary"] p,
+    div[data-testid="stButton"] > button[kind="primary"] span,
+    div[data-testid="stButton"] > button[kind="primary"] [data-testid="stMarkdownContainer"] p,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"] *,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"] p,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"] span,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"] div,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"] [data-testid="stMarkdownContainer"] p,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"] *,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"] p,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"] span,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"] div,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"] [data-testid="stMarkdownContainer"] p,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"] *,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"] p,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"] span,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"] div,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"] [data-testid="stMarkdownContainer"] p,
+    .stButton > button[kind="primary"] *,
+    .stButton > button[kind="primary"] p {
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        text-shadow: none !important;
+    }
+
+    /* PRIMARY BUTTON HOVER */
+    button[data-testid="stBaseButton-primary"]:hover,
+    button[kind="primary"]:hover,
+    button[kind="primaryFormSubmit"]:hover,
+    div[data-testid="stButton"] > button[kind="primary"]:hover,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"]:hover,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"]:hover {
         background-color: #193B5A !important;
         border-color: #193B5A !important;
         color: #FFFFFF !important;
     }
 
-    div.stButton > button[kind="primary"] * {
+    button[data-testid="stBaseButton-primary"]:hover *,
+    button[kind="primary"]:hover *,
+    button[kind="primaryFormSubmit"]:hover *,
+    div[data-testid="stButton"] > button[kind="primary"]:hover *,
+    div[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover *,
+    div[data-testid="stFormSubmitButton"] > button[kind="primaryFormSubmit"]:hover *,
+    div[data-testid="stFormSubmitButton"] > button[data-testid="stBaseButton-primary"]:hover * {
         color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+    }
+
+    /* SECONDARY BUTTONS (White background with crisp dark blue border & text) */
+    button[data-testid="stBaseButton-secondary"],
+    button[kind="secondary"],
+    button[kind="secondaryFormSubmit"],
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]),
+    div[data-testid="stFormSubmitButton"] > button[kind="secondaryFormSubmit"],
+    div[data-testid="stFormSubmitButton"] > button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="stBaseButton-primary"]),
+    div[data-testid="stDownloadButton"] > button,
+    div[data-testid="stSidebar"] button,
+    .stButton > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) {
+        background-color: #FFFFFF !important;
+        border: 1.5px solid #234B70 !important;
+        color: #234B70 !important;
+    }
+
+    /* SECONDARY BUTTON TEXT: High-contrast Dark Navy (#234B70) */
+    button[data-testid="stBaseButton-secondary"] *,
+    button[data-testid="stBaseButton-secondary"] p,
+    button[data-testid="stBaseButton-secondary"] span,
+    button[kind="secondary"] *,
+    button[kind="secondary"] p,
+    button[kind="secondary"] span,
+    button[kind="secondaryFormSubmit"] *,
+    button[kind="secondaryFormSubmit"] p,
+    button[kind="secondaryFormSubmit"] span,
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) *,
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) p,
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) span,
+    div[data-testid="stFormSubmitButton"] > button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="stBaseButton-primary"]) *,
+    div[data-testid="stFormSubmitButton"] > button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="stBaseButton-primary"]) p,
+    div[data-testid="stFormSubmitButton"] > button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="stBaseButton-primary"]) span,
+    div[data-testid="stDownloadButton"] > button *,
+    div[data-testid="stDownloadButton"] > button p,
+    div[data-testid="stSidebar"] button *,
+    div[data-testid="stSidebar"] button p,
+    .stButton > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]) * {
+        color: #234B70 !important;
+        fill: #234B70 !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* SECONDARY BUTTON HOVER */
+    button[data-testid="stBaseButton-secondary"]:hover,
+    button[kind="secondary"]:hover,
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]):hover,
+    div[data-testid="stFormSubmitButton"] > button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="stBaseButton-primary"]):hover,
+    div[data-testid="stDownloadButton"] > button:hover,
+    div[data-testid="stSidebar"] button:hover {
+        background-color: #F0F6FC !important;
+        border-color: #193B5A !important;
+        color: #193B5A !important;
+    }
+
+    button[data-testid="stBaseButton-secondary"]:hover *,
+    div[data-testid="stButton"] > button:not([kind="primary"]):not([data-testid="stBaseButton-primary"]):hover *,
+    div[data-testid="stFormSubmitButton"] > button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="stBaseButton-primary"]):hover *,
+    div[data-testid="stDownloadButton"] > button:hover *,
+    div[data-testid="stSidebar"] button:hover * {
+        color: #193B5A !important;
+        fill: #193B5A !important;
     }
 
     /* Form labels & inputs */
@@ -199,12 +353,28 @@ DEARLY_CSS = """
         font-weight: 600 !important;
         font-size: 17px !important;
     }
-    .stTextInput input, .stSelectbox select, .stTextArea textarea, .stDateInput input, .stTimeInput input {
+    .stTextInput input,
+    .stSelectbox select,
+    .stTextArea textarea,
+    .stDateInput input,
+    .stTimeInput input,
+    [data-testid="stTextInput"] input,
+    [data-testid="stNumberInput"] input,
+    [data-testid="stTextArea"] textarea,
+    [data-testid="stDateInput"] input,
+    [data-testid="stTimeInput"] input,
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > input {
         background-color: #FFFFFF !important;
         color: #243447 !important;
         border: 1px solid #DFE6EE !important;
-        font-size: 17px !important;
+        font-size: 16px !important;
         border-radius: 8px !important;
+    }
+    input:disabled, textarea:disabled {
+        background-color: #EDF2F7 !important;
+        color: #607086 !important;
+        cursor: not-allowed !important;
     }
 
     /* Tabs */

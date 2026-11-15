@@ -311,7 +311,7 @@ def render_health_view(user: dict, page: str = "Health Records"):
                                 new_val = st.text_input("New Reading Value", value=r["reading_value"])
                                 corr_reason = st.text_input("Reason for Correction (Required)", placeholder="e.g. Typo in systolic value / Re-measured with calibrated cuff")
                                 corr_notes = st.text_input("Updated Clinical Notes", value=r.get("notes") or "")
-                                submit_corr = st.form_submit_button("Save Correction with Audit Trail")
+                                submit_corr = st.form_submit_button("Save Correction with Audit Trail", type="primary", use_container_width=True)
 
                                 if submit_corr:
                                     try:
@@ -466,7 +466,7 @@ def render_health_view(user: dict, page: str = "Health Records"):
                     with o_c2:
                         obs_date = st.date_input("Date Observed", value=date.today())
 
-                    submit_obs = st.form_submit_button("Save Wellbeing Observation", type="primary")
+                    submit_obs = st.form_submit_button("Save Wellbeing Observation", type="primary", use_container_width=True)
                     if submit_obs:
                         try:
                             oid = add_health_observation(
