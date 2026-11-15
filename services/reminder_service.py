@@ -1,8 +1,11 @@
+import logging
 import sqlite3
 from datetime import datetime, date, timedelta
 from database import get_connection
 from services.permissions import enforce_elderly_access, can_access_elderly_record, can_manage_elderly_care
 from services.activity_service import log_activity
+
+logger = logging.getLogger("dearly.reminders")
 
 
 def get_user_reminder_settings(user_id: int) -> dict:
@@ -289,9 +292,10 @@ def sync_reminders_and_escalations(
                                 scheduled_time=formatted_time,
                                 meal_timing=rem.get("meal_timing") or "After Meal",
                                 instructions=instructions,
+                                conn=conn,
                             )
-                    except Exception:
-                        pass
+                    except Exception as email_err:
+                        logger.warning("Upcoming dose email notification note: %s", email_err)
 
             elif status == "overdue":
                 counts["overdue"] += 1
@@ -336,9 +340,10 @@ def sync_reminders_and_escalations(
                                         medicine_name=med_name,
                                         dosage=dosage,
                                         scheduled_time=formatted_time,
+                                        conn=conn,
                                     )
-                            except Exception:
-                                pass
+                            except Exception as email_err:
+                                logger.warning("Missed dose email escalation note: %s", email_err)
 
                         # Insert notification for caregiver
                         conn.execute(

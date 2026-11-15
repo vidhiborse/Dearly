@@ -1,9 +1,12 @@
+import logging
 import re
 import sqlite3
 from datetime import date, datetime, timedelta
 from database import get_connection
 from services.activity_service import log_activity
 from services.permissions import enforce_elderly_access, can_manage_elderly_care
+
+logger = logging.getLogger("dearly.appointments")
 
 
 def parse_appointment_datetime(date_str: str, time_str: str) -> datetime | None:
@@ -472,7 +475,9 @@ def sync_appointment_reminders(
     counts = {"one_day_reminders": 0, "one_hour_reminders": 0}
 
     with get_connection() as conn:
-        query = "SELECT * FROM appointments WHERE status = 'upcoming'"
+        query = """SELECT id, elderly_user_id, doctor_name, hospital, appointment_date,
+                          appointment_time, specialization, reason, purpose, notes, status
+                   FROM appointments WHERE status = 'upcoming'"""
         params = []
         if elderly_user_id:
             query += " AND elderly_user_id = ?"
@@ -544,9 +549,10 @@ def sync_appointment_reminders(
                                     appointment_time=appt_time,
                                     reminder_type="1_day_before",
                                     notes=a["notes"] or "",
+                                    conn=conn,
                                 )
-                        except Exception:
-                            pass
+                        except Exception as email_err:
+                            logger.warning("1-day appointment email dispatch note: %s", email_err)
 
             # 2. One Hour Before Reminder (within [appt_dt - 1h, appt_dt])
             one_hour_window_start = appt_dt - timedelta(hours=1)
@@ -586,9 +592,10 @@ def sync_appointment_reminders(
                                     appointment_time=appt_time,
                                     reminder_type="1_hour_before",
                                     notes=a["notes"] or "",
+                                    conn=conn,
                                 )
-                        except Exception:
-                            pass
+                        except Exception as email_err:
+                            logger.warning("1-hour appointment email dispatch note: %s", email_err)
 
     return counts
 

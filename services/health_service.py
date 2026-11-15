@@ -960,6 +960,19 @@ def get_health_summary(
     }
 
 
+def sanitize_csv_cell(val) -> str:
+    """
+    Sanitizes values against CSV Formula Injection (OWASP CWE-1236).
+    Prepends a single quote if string begins with =, +, -, @, tab, or carriage return.
+    """
+    if val is None:
+        return ""
+    s = str(val)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 def export_health_records_csv(
     elderly_user_id: int,
     reading_type: str = None,
@@ -969,6 +982,7 @@ def export_health_records_csv(
 ) -> str:
     """
     Exports filtered health readings for an authorized elderly profile in standard CSV format.
+    Sanitizes cell data against CSV formula injection (OWASP CWE-1236).
     Ensures safe, permission-checked data extraction.
     """
     if user:
@@ -990,8 +1004,11 @@ def export_health_records_csv(
     output = io.StringIO()
     writer = csv.writer(output)
 
+    def write_safe_row(cells):
+        writer.writerow([sanitize_csv_cell(c) for c in cells])
+
     # Header
-    writer.writerow([
+    write_safe_row([
         "Record ID",
         "Patient Name",
         "Date",
@@ -1008,7 +1025,7 @@ def export_health_records_csv(
     ])
 
     for r in readings:
-        writer.writerow([
+        write_safe_row([
             r["id"],
             elderly_name,
             r["recorded_on"],

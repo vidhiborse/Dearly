@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime
 import re
 import sqlite3
 from database import get_connection
 from services.activity_service import log_activity
 from services.permissions import enforce_elderly_access
+
+logger = logging.getLogger("dearly.emergency")
 
 EMERGENCY_SAFETY_NOTICE = (
     "Dearly SOS sends in-app alerts to your authorized care circle. "
@@ -211,7 +214,9 @@ def get_emergency_contacts(elderly_user_id: int, active_only: bool = True, user:
     if user:
         enforce_elderly_access(user, elderly_user_id, write_access=False)
 
-    query = "SELECT * FROM emergency_contacts WHERE elderly_user_id = ?"
+    query = """SELECT id, elderly_user_id, contact_name, relationship, phone,
+                      email, priority, is_primary, is_active, notes, created_at, updated_at
+               FROM emergency_contacts WHERE elderly_user_id = ?"""
     params = [elderly_user_id]
     if active_only:
         query += " AND is_active = 1"
@@ -753,8 +758,8 @@ def trigger_sos_alert(
                     triggered_by_user_id,
                     resolution_notes="Auto-resolved prior alert for legacy trigger",
                 )
-            except Exception:
-                pass
+            except Exception as auto_res_err:
+                logger.debug("Auto-resolve prior alert status: %s", auto_res_err)
         return activate_emergency_sos(
             elderly_user_id=elderly_user_id,
             triggered_by_user_id=triggered_by_user_id,
@@ -795,8 +800,8 @@ def acknowledge_alert(alert_id: int, elderly_user_id: int, acknowledged_by_id: i
     """Backward-compatible alert acknowledgment."""
     try:
         acknowledge_emergency(alert_id, elderly_user_id, acknowledged_by_id, response_note="Acknowledged alert")
-    except Exception:
-        pass
+    except Exception as ack_err:
+        logger.debug("Legacy acknowledge alert note: %s", ack_err)
     with get_connection() as conn:
         conn.execute(
             "UPDATE emergency_alerts SET status = 'acknowledged' WHERE id = ?",
@@ -822,7 +827,8 @@ def simulate_reminder_notification(
 def get_simulated_reminders(elderly_user_id: int, limit: int = 15):
     with get_connection() as conn:
         rows = conn.execute(
-            """SELECT * FROM simulated_reminders
+            """SELECT id, elderly_user_id, recipient_email, subject, message, channel, status, sent_at
+               FROM simulated_reminders
                WHERE elderly_user_id = ?
                ORDER BY sent_at DESC LIMIT ?""",
             (elderly_user_id, limit),

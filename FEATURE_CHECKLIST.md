@@ -221,3 +221,7 @@
 | Brute-force sign-in rate limiting (OWASP A07 Compliance) | `database.py`, `services/auth_service.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_11`). |
 | High-performance SQLite engine (WAL mode, NORMAL sync, 64MB cache) | `database.py` | Complete | High concurrency and reduced I/O overhead. |
 | 30-second UI rerun synchronization throttling | `app.py` | Complete | Eliminates redundant database reads on Streamlit interactions. |
+| CSV Formula Injection Sanitization (OWASP CWE-1236) | `services/analytics_service.py`, `services/health_service.py` | Complete | Verified in `test_phase11_email_and_passcode.py` (`test_12`, `test_13`). |
+| WCAG 2.1 AAA Focus Visible, Reduced Motion & Skip Link | `views/common.py` | Complete | High-contrast focus indicators, reduced motion media queries, screen reader utility. |
+| Structured application logging & zero silent exceptions | `services/` | Complete | Structured Python standard library logging across all service layers. |
+| Full regression verification across all 202 tests | All 11 test suites | Complete | 202/202 tests passing with 100% success rate. |

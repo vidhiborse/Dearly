@@ -59,7 +59,7 @@ dearly/
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
 ├── SECURITY.md                 # Security architecture, threat model, RBAC and QA documentation
-├── test_phase11_email_and_passcode.py # Phase 11 Proactive Email Reminders & Passcode Access (11 tests)
+├── test_phase11_email_and_passcode.py # Phase 11 Proactive Email Reminders, Passcode & CSV Security (13 tests)
 ├── test_phase10_security_qa.py # Phase 10 Security Hardening & Workflows A-F integration test suite (26 tests)
 ├── test_phase9_analytics.py    # Phase 9 Analytics & Reports test suite (26 tests)
 ├── test_phase8_emergency.py    # Phase 8 Emergency SOS & Contacts test suite (20 tests)
@@ -159,7 +159,7 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all 200 automated tests across all 11 phases
+# Run all 202 automated tests across all 11 phases
 python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py test_phase10_security_qa.py test_phase11_email_and_passcode.py
 ```
 

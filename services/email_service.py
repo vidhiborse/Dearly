@@ -80,17 +80,23 @@ def log_email_dispatch(
     message_content: str,
     channel: str = "email",
     status: str = "sent",
+    conn=None,
 ) -> int:
     """
     Records an outbound simulated email reminder in the database.
+    Reuses existing database connection if provided to eliminate lock contention.
     """
-    with get_connection() as conn:
-        cursor = conn.execute(
-            """INSERT INTO simulated_reminders
+    query = """INSERT INTO simulated_reminders
                (elderly_user_id, recipient_email, subject, message, channel, status, sent_at)
-               VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
-            (elderly_user_id, recipient_email.strip().lower(), subject.strip(), message_content, channel, status),
-        )
+               VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"""
+    params = (elderly_user_id, recipient_email.strip().lower(), subject.strip(), message_content, channel, status)
+
+    if conn:
+        cursor = conn.execute(query, params)
+        return cursor.lastrowid
+
+    with get_connection() as c:
+        cursor = c.execute(query, params)
         return cursor.lastrowid
 
 
@@ -104,6 +110,7 @@ def send_upcoming_dose_email(
     scheduled_time: str,
     meal_timing: str = "After Meal",
     instructions: str = "",
+    conn=None,
 ) -> int:
     """Dispatches an upcoming medication routine email reminder."""
     subject = f"Upcoming Dose Reminder: {medicine_name} ({dosage}) at {scheduled_time} for {senior_name}"
@@ -123,7 +130,7 @@ def send_upcoming_dose_email(
         ],
         action_guidance="Please ensure this medicine is taken as scheduled. If taken, confirm via the Dearly dashboard to keep the care circle updated.",
     )
-    return log_email_dispatch(elderly_user_id, recipient_email, subject, html_body, channel="email", status="sent")
+    return log_email_dispatch(elderly_user_id, recipient_email, subject, html_body, channel="email", status="sent", conn=conn)
 
 
 def send_missed_dose_email(
@@ -134,6 +141,7 @@ def send_missed_dose_email(
     medicine_name: str,
     dosage: str,
     scheduled_time: str,
+    conn=None,
 ) -> int:
     """Dispatches a missed/overdue medication email alert to caregivers and family."""
     subject = f"OVERDUE MEDICATION NOTICE: {medicine_name} ({dosage}) for {senior_name}"
@@ -153,7 +161,7 @@ def send_missed_dose_email(
         ],
         action_guidance="Please verify directly with the care recipient if this dose was taken. Clinical safety guidance: Never advise taking an extra dose or doubling medication to compensate for a missed dose.",
     )
-    return log_email_dispatch(elderly_user_id, recipient_email, subject, html_body, channel="email", status="sent")
+    return log_email_dispatch(elderly_user_id, recipient_email, subject, html_body, channel="email", status="sent", conn=conn)
 
 
 def send_appointment_email(
@@ -167,6 +175,7 @@ def send_appointment_email(
     appointment_time: str,
     reminder_type: str = "1_day_before",
     notes: str = "",
+    conn=None,
 ) -> int:
     """Dispatches a medical appointment email reminder."""
     urgency_label = "Tomorrow" if reminder_type == "1_day_before" else "In 1 Hour"
@@ -187,7 +196,7 @@ def send_appointment_email(
         ],
         action_guidance="Please arrange transport and ensure all previous diagnostic reports are carried to the clinic. Check in early.",
     )
-    return log_email_dispatch(elderly_user_id, recipient_email, subject, html_body, channel="email", status="sent")
+    return log_email_dispatch(elderly_user_id, recipient_email, subject, html_body, channel="email", status="sent", conn=conn)
 
 
 def get_outbound_emails(elderly_user_id: int = None, limit: int = 50) -> list[dict]:

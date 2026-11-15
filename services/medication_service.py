@@ -378,7 +378,11 @@ def get_medications(
         enforce_elderly_access(user, elderly_user_id, write_access=False)
 
     with get_connection() as conn:
-        query = "SELECT * FROM medications WHERE elderly_user_id = ?"
+        query = """SELECT id, elderly_user_id, medicine_name, dosage, medication_type,
+                          schedule_time, frequency, meal_timing, instructions, start_date,
+                          end_date, active, purpose, prescribing_doctor, notes, stock_quantity,
+                          created_at, updated_at
+                   FROM medications WHERE elderly_user_id = ?"""
         params = [elderly_user_id]
 
         if active_only or status_filter == "active":
@@ -394,7 +398,11 @@ def get_medications(
 def get_medication_by_id(medication_id: int, elderly_user_id: int = None) -> dict | None:
     """Fetches details of a single medication."""
     with get_connection() as conn:
-        query = "SELECT * FROM medications WHERE id = ?"
+        query = """SELECT id, elderly_user_id, medicine_name, dosage, medication_type,
+                          schedule_time, frequency, meal_timing, instructions, start_date,
+                          end_date, active, purpose, prescribing_doctor, notes, stock_quantity,
+                          created_at, updated_at
+                   FROM medications WHERE id = ?"""
         params = [medication_id]
         if elderly_user_id:
             query += " AND elderly_user_id = ?"

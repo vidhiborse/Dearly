@@ -140,5 +140,35 @@ class TestEmailAndPasscodeFeatures(unittest.TestCase):
         allowed, _ = check_login_rate_limit(test_email)
         self.assertTrue(allowed)
 
+    def test_12_csv_injection_sanitization_helper(self):
+        from services.health_service import sanitize_csv_cell
+        self.assertEqual(sanitize_csv_cell("=1+1"), "'=1+1")
+        self.assertEqual(sanitize_csv_cell("+cmd|' /C calc'!A0"), "'+cmd|' /C calc'!A0")
+        self.assertEqual(sanitize_csv_cell("@SUM(1,2)"), "'@SUM(1,2)")
+        self.assertEqual(sanitize_csv_cell("-12.5"), "'-12.5")
+        self.assertEqual(sanitize_csv_cell("Normal text"), "Normal text")
+        self.assertEqual(sanitize_csv_cell(None), "")
+
+    def test_13_csv_export_injection_safety(self):
+        from services.health_service import add_health_reading, export_health_records_csv
+        user_auth = {"id": 1, "role": "elderly", "name": "Asha Patil"}
+        
+        # Log reading with formula-like notes
+        rid = add_health_reading(
+            elderly_user_id=1,
+            reading_type="Blood Pressure",
+            reading_value="120/80",
+            unit="mmHg",
+            context="Resting",
+            recorded_by=1,
+            notes="=HYPERLINK('http://malicious.site','Click')",
+            user=user_auth,
+        )
+        self.assertGreater(rid, 0)
+
+        csv_content = export_health_records_csv(elderly_user_id=1, user=user_auth)
+        self.assertNotIn(",=HYPERLINK", csv_content)
+        self.assertIn("'=HYPERLINK", csv_content)
+
 if __name__ == "__main__":
     unittest.main()

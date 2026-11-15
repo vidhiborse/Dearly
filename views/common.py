@@ -462,11 +462,71 @@ DEARLY_CSS = """
         display: inline-block;
         text-align: center;
     }
+
+    /* WCAG 2.1 AAA Focus Visible Indicators (Criterion 2.4.7 & 2.4.11) */
+    *:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [role="button"]:focus-visible,
+    [tabindex="0"]:focus-visible,
+    div[data-testid="stButton"] > button:focus-visible,
+    div[data-testid="stFormSubmitButton"] > button:focus-visible {
+        outline: 3px solid #234B70 !important;
+        outline-offset: 3px !important;
+        box-shadow: 0 0 0 4px rgba(35, 75, 112, 0.25) !important;
+    }
+
+    /* Accessibility: Reduced Motion Preference (WCAG 2.2.2) */
+    @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    /* Screen Reader Only Utility (WCAG 1.3.1 Info and Relationships) */
+    .sr-only,
+    .visually-hidden {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+    }
+
+    /* High-contrast skip link for keyboard accessibility */
+    .skip-to-content {
+        position: absolute;
+        top: -50px;
+        left: 10px;
+        background: #234B70;
+        color: #FFFFFF !important;
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 16px;
+        z-index: 99999;
+        border-radius: 0 0 6px 6px;
+        text-decoration: none;
+        transition: top 0.2s ease-in-out;
+    }
+    .skip-to-content:focus {
+        top: 0;
+        outline: 3px solid #FFFFFF !important;
+    }
 </style>
 """
 
 def inject_custom_styles():
     st.markdown(DEARLY_CSS, unsafe_allow_html=True)
+    st.markdown('<a href="#main-content" class="skip-to-content" aria-label="Skip to main content">Skip to main content</a><div id="main-content" tabindex="-1"></div>', unsafe_allow_html=True)
 
 def render_hero_header(title: str, subtitle: str, role_badge: str = None):
     s_title = html.escape(str(title))
