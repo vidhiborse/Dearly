@@ -154,3 +154,29 @@
 | Emergency requests and history persist across restart | `database.py`, `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_18`). |
 | Optional location notes support without fake GPS | `services/emergency_service.py`, `views/emergency_view.py` | Complete | Verified in `test_phase8_emergency.py` (`test_19`). |
 | Complete regression verification across all 140 tests | All test suites | Complete | 140/140 tests passing in 13.5s. |
+| **Phase 9: Analytics & Reports** | | | |
+| Overview analytics dashboard with KPI metrics | `services/analytics_service.py`, `views/analytics_view.py` | Complete | Verified in `test_phase9_analytics.py` (`test_12`, `test_15`). |
+| Medication adherence calculation (`(Taken/Due)*100`) | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_01`). |
+| Strict exclusion of future scheduled doses | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_02`). |
+| Zero-dose periods handled without division errors | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_03`). |
+| Deduplication of identical dose logs | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_04`). |
+| Accurate categorization of all dose statuses | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_05`). |
+| Daily adherence trend analysis & Plotly charts | `services/analytics_service.py`, `views/analytics_view.py` | Complete | Verified in `test_phase9_analytics.py` (`test_06`). |
+| Weekly adherence trend aggregation | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_07`). |
+| Medication-wise performance breakdown | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_08`). |
+| Health trends calculated from actual readings | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_09`). |
+| Safe empty state for missing health measurements | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_10`). |
+| Incompatible units separated and not blended | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_11`). |
+| Appointment analytics with status metrics | `services/analytics_service.py`, `views/analytics_view.py` | Complete | Verified in `test_phase9_analytics.py` (`test_12`). |
+| Cancelled appointments excluded from completed count | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_13`). |
+| Activity analytics with category filtering | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_14`). |
+| Multi-period and custom date-range filtering | `services/analytics_service.py`, `views/analytics_view.py` | Complete | Verified in `test_phase9_analytics.py` (`test_15`). |
+| Elderly user isolation (own reports only) | `services/permissions.py`, `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_16`). |
+| Caregiver access to authorized linked profiles only | `services/permissions.py`, `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_17`). |
+| Family member restricted note sanitization | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_18`). |
+| RFC-4180 CSV export without sensitive credentials | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_19`). |
+| CSV export handling of empty datasets | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_20`). |
+| Read-only analytics (zero database mutation) | `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_21`). |
+| Full regression verification across all earlier phases | All test suites | Complete | Verified in `test_phase9_analytics.py` (`test_22`). |
+| Analytics persistence across application restart | `database.py`, `services/analytics_service.py` | Complete | Verified in `test_phase9_analytics.py` (`test_23`). |
+| Full regression verification across all 163 tests | All test suites | Complete | 163/163 tests passing in 25.4s. |

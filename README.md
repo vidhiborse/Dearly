@@ -58,6 +58,7 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
+├── test_phase9_analytics.py    # Phase 9 Analytics & Reports test suite (23 tests)
 ├── test_phase8_emergency.py    # Phase 8 Emergency SOS & Contacts test suite (20 tests)
 ├── test_phase7_health.py       # Phase 7 Health Monitoring & Records test suite (22 tests)
 ├── test_phase6_appts.py        # Phase 6 Doctor Appointments test suite (21 tests)
@@ -82,6 +83,7 @@ dearly/
 │   ├── health_service.py       # Health vitals logging, clinical validation, audit trails, charts & CSV export
 │   ├── activity_service.py     # Immutable audit trail, activity timeline & category filtering
 │   ├── emergency_service.py    # Emergency SOS activation, duplicate guard, contact CRUD & status lifecycle
+│   ├── analytics_service.py    # Adherence math, health trends, appointments, activity analytics & CSV export
 │   └── summary_service.py      # Algorithmic daily care briefing with strict safety guardrails
 │
 └── views/                      # Accessible Streamlit Presentation Layer
@@ -93,6 +95,7 @@ dearly/
     ├── appointment_view.py     # Accessible doctor appointments dashboard, calendar & history
     ├── health_view.py          # Accessible health records, multi-vital trend charts & audit trail
     ├── emergency_view.py       # Accessible Emergency SOS trigger, helplines, contact CRUD & status history
+    ├── analytics_view.py       # Dedicated Analytics & Reports dashboard (Overview, Adherence, Trends, Export)
     ├── notification_view.py    # In-App Notification Center, reminder stream & escalation management
     ├── elderly_view.py         # High-contrast, large-button, accessible elderly interface
     ├── caregiver_view.py       # Care coordination, missed-dose escalation, medication & vitals CRUD
@@ -152,8 +155,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all 140 automated tests across all 8 phases
-python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py
+# Run all 163 automated tests across all 9 phases
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py
 ```
 
 ### 5. Launch Dearly

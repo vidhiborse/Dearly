@@ -71,9 +71,9 @@ def can_view_page(user: dict, requested_page: str) -> bool:
 
     role = user.get("role", "")
     allowed_pages = {
-        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Health Records", "Emergency Contacts", "Emergency SOS", "My Profile"],
-        "caregiver": ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Emergency SOS", "Activity History", "My Profile"],
-        "family": ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "Health Records", "Emergency SOS", "My Profile"],
+        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Health Records", "Emergency Contacts", "Emergency SOS", "Analytics & Reports", "Reports & Analytics", "My Profile"],
+        "caregiver": ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Emergency SOS", "Analytics & Reports", "Reports & Analytics", "Activity History", "My Profile"],
+        "family": ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "Health Records", "Emergency SOS", "Analytics & Reports", "Reports & Analytics", "My Profile"],
     }
     return requested_page in allowed_pages.get(role, [])
 
@@ -97,6 +97,11 @@ def can_manage_emergency(user: dict, elderly_user_id: int) -> bool:
 
 def can_view_health_records(user: dict, elderly_user_id: int) -> bool:
     """Checks if user is authorized to view health records for an elderly person."""
+    return can_access_elderly_record(user, elderly_user_id)
+
+
+def can_view_analytics(user: dict, elderly_user_id: int) -> bool:
+    """Checks if user is authorized to view analytics reports for an elderly person."""
     return can_access_elderly_record(user, elderly_user_id)
 
 

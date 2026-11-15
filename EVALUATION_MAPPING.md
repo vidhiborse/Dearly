@@ -149,6 +149,32 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
    - Open the **"Emergency Assistance History"** tab.
    - Inspect chronological requests and expand any request card to review the full transition audit trail from `emergency_status_history`.
 
+### Testing Analytics & Reports (Phase 9)
+1. **Analytics Navigation**:
+   - Click **"Analytics & Reports"** from the navigation sidebar across any role.
+2. **Ward & Time Period Filtering**:
+   - For caregivers/family: Select the care recipient from the dropdown (e.g. `Asha Patil`).
+   - Change report time period: `Last 30 Days`, `Last 7 Days`, `Last 90 Days`, or `Custom Range`. Notice that all tabs, charts, and metrics immediately update to match the active window.
+3. **Overview Dashboard Tab**:
+   - Inspect the executive KPI grid: Overall Adherence %, Doses Taken vs Due, Skipped & Overdue counts, and Appointments Completed.
+   - Verify that future scheduled doses are strictly excluded from due counts.
+   - Review clinical safety disclaimer stating that analytics are non-diagnostic.
+4. **Medication Adherence Tab**:
+   - Review the stacked daily dose confirmations bar chart with secondary adherence trend line.
+   - Inspect the **Medication-Wise Performance** table showing due, taken, skipped, and overdue metrics per prescription.
+   - Inspect the **Weekly Adherence Summary** aggregation.
+5. **Health Trends Tab**:
+   - Select a vital from the dropdown (e.g., `Blood Pressure`, `Blood Sugar`, `Weight`, `Heart Rate`).
+   - If multiple units exist (e.g. `kg` vs `lb`), select the desired unit and verify that incompatible units are strictly separated and not combined.
+   - Inspect the summary KPI cards (Systolic/Diastolic for BP; Min/Max/Avg for others) and the interactive Plotly trend line with normal reference bands.
+6. **Appointment Analytics Tab**:
+   - Inspect the appointment status counters (Completed, Upcoming, Cancelled, Missed). Notice cancelled visits are never counted as completed.
+   - Inspect the **Appointments by Type** horizontal bar chart and **Monthly Appointment History** chart.
+7. **Care Activity & CSV Export Tab**:
+   - Inspect the **Activity Volumes by Care Category** bar chart.
+   - Filter activity logs by category (Medication, Reminders, Care Circle, Notes, Emergency SOS).
+   - Click **"DOWNLOAD ANALYTICS REPORT (CSV)"**: Inspect the downloaded RFC-4180 CSV file to verify full care summaries, health measurements, and zero exposure of password hashes or tokens.
+
 ---
 
 ## 2. Evaluation Criteria Mapping
@@ -212,8 +238,18 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 - **Emergency Contact Management**: Complete CRUD supporting validated phone numbers, priority ordering, and single-primary contact rule.
 - **Privacy & Role Enforcement**: Caregivers with editor permissions can manage contacts and response status; family viewers maintain read-only awareness.
 
-### Criterion 9: Automated Testing & Verification
+### Criterion 9: Healthcare Analytics & Reporting (Phase 9)
+- **Executive Overview Analytics**: Real KPI metrics for adherence %, scheduled doses, taken, skipped, overdue, and appointment counts in [services/analytics_service.py](file:///d:/Dearly/services/analytics_service.py).
+- **Medication Adherence Mathematics**: Strictly excludes future scheduled doses and deduplicates entries; computes daily and weekly adherence trends.
+- **Clinical Vital Trends**: Plotly charts with reference bands, metric summaries (min, max, avg), and strict separation of incompatible units in [views/analytics_view.py](file:///d:/Dearly/views/analytics_view.py).
+- **Appointment Insights**: Categorization into completed, upcoming, cancelled, and missed; monthly history and type distribution. Cancelled visits excluded from completed count.
+- **Care Activity Breakdown**: Category distribution and privacy-sanitized activity feeds for family members.
+- **RFC-4180 CSV Export**: Complete downloadable care summary reports with zero exposure of sensitive authentication credentials.
+- **Non-Diagnostic Safety Policy**: Prominent disclaimer stating that analytics and charts are informational and never replace professional medical judgment.
+
+### Criterion 10: Automated Testing & Verification
 - **Test Suites**:
+  - `test_phase9_analytics.py`: 23 mandatory Phase 9 tests covering adherence math, future dose exclusion, zero-dose safety, deduplication, health trends, unit separation, appointment counts, activity filtering, RBAC, CSV export, and persistence.
   - `test_phase8_emergency.py`: 20 mandatory Phase 8 tests covering SOS activation, confirmation, disclaimer, duplicate guard, notifications, status history, contacts CRUD, and regression.
   - `test_phase7_health.py`: 22 mandatory Phase 7 tests covering all measurement types, validation, audit trails, charts, CSV export, and RBAC.
   - `test_phase6_appts.py`: 21 mandatory Phase 6 tests covering appointment CRUD, past-date validation, rescheduling, reminders, and RBAC.
@@ -222,4 +258,4 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
   - `test_phase3_meds.py`: 17 mandatory Phase 3 tests covering CRUD, date validation, period grouping, and adherence mathematics.
   - `test_phase2_auth.py`: 15 authentication & RBAC unit tests.
   - `test_app.py`: 8 end-to-end integration tests.
-  - Total: **140 passing automated tests** with 0 errors and 0 failures.
+  - Total: **163 passing automated tests** with 0 errors and 0 failures.

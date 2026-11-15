@@ -1,6 +1,6 @@
 # Dearly — Project Status
 
-**Current Phase:** Phase 8 (Emergency SOS Workflow & Verification)  
+**Current Phase:** Phase 9 (Analytics & Reports)  
 **Status:** Completed & Verified  
 **Date:** November 15, 2026  
 **Repository:** [github.com/vidhiborse/Dearly](https://github.com/vidhiborse/Dearly)
@@ -9,201 +9,166 @@
 
 ## 1. Executive Summary
 
-Phase 8 implements an accessible, reliable, and auditable **Emergency SOS Workflow & Emergency Contact Management** system for Dearly (*Care that stays close.*). The module enables elderly users to quickly alert their authorized Care Circle when assistance is required, while providing caregivers and family members with immediate visibility, response coordination, and transition audit history.
+Phase 9 implements a comprehensive, accessible, and clinically grounded **Analytics & Reports** module for Dearly (*Care that stays close.*). The system transforms medication doses, health vitals, appointments, and care circle activities into actionable insights for older adults, caregivers, and family members.
 
 Key capabilities delivered:
-1. **Emergency SOS Dashboard**: Dedicated view across all user roles:
-   - Senior: Rapid two-step SOS activation, Indian emergency helpline directory, and emergency contacts list.
-   - Caregiver & Family: Active emergency alert banners, response coordination controls, and historical timeline.
-2. **Mandatory Safety Disclaimer**: Prominently displayed across all emergency interfaces:
-   > *"Dearly SOS sends in-app alerts to your authorized care circle. It does not guarantee that someone will receive or respond to an alert. For immediate danger or a medical emergency in India, call 112 or your local emergency service directly."*
-3. **Official Indian Emergency Helplines**: Quick-reference cards for:
-   - **112**: All-in-One National Emergency Helpline
-   - **108 / 102**: Ambulance & Emergency Medical Services
-   - **100**: Police Assistance
-   - **14567**: Elderline (National Helpline for Senior Citizens)
-4. **Accessible Two-Step Activation Workflow**:
-   - High-contrast, large-target SOS trigger button (elderly-friendly design system).
-   - Two-step confirmation dialog requiring deliberate user confirmation to eliminate accidental activations.
-   - Optional user notes (e.g., room/address or specific situation) without fabricated GPS or misleading tracking claims.
-5. **Duplicate Activation Prevention**: Guard condition preventing duplicate requests while an active emergency (`pending`, `acknowledged`, `assistance_in_progress`) is currently open for that senior.
-6. **Active Care Circle Notification Dispatch**: Automatically routes in-app notifications to all active members of the senior's Care Circle. Revoked, pending, or inactive members receive zero alerts.
-7. **Complete Lifecycle & Response Coordination**:
-   - `pending`: Newly activated, awaiting caregiver acknowledgment.
-   - `acknowledged`: Caregiver has acknowledged and is responding.
-   - `assistance_in_progress`: Caregiver is actively providing assistance or en route.
-   - `resolved`: Emergency situation safely resolved with mandatory resolution notes.
-   - `cancelled`: Senior or authorized caregiver cancelled the false alert with cancellation reason.
-8. **Emergency Status History Audit Trail**: Every status transition records `request_id`, `elderly_user_id`, `actor_user_id`, `from_status`, `to_status`, `response_note`, and timestamp in `emergency_status_history`.
-9. **Emergency Contacts Management**: Complete CRUD supporting contact name, relationship, validated phone number (>= 7 digits), email, and priority ordering with a single-primary-contact rule.
-10. **100% Test Coverage**: 20 of 20 mandatory Phase 8 test scenarios passing; 140 of 140 total tests passing across all project test suites with 0 errors and 0 failures. Zero emojis across all code, tests, and documentation.
+1. **Analytics & Reports Dashboard**: Dedicated 5-tab interface across all user roles:
+   - Senior: Personal adherence insights, vital trends, appointment history, and reports download.
+   - Caregiver: Multi-ward recipient selector, date-range filtering, adherence breakdowns, and CSV export.
+   - Family Member: Full observability over permitted adherence, appointments, and vitals with read-only safeguards.
+2. **Executive Overview KPIs**: Real calculated metrics strictly derived from stored database records:
+   - Medication adherence percentage (`(Taken Doses / Total Due Doses) x 100`).
+   - Total scheduled doses due vs taken doses.
+   - Skipped doses and overdue doses.
+   - Upcoming and completed doctor appointments.
+   - Total recorded health readings and care log events.
+3. **Rigorous Medication Adherence Analytics**:
+   - Strictly excludes future scheduled doses from due counts.
+   - Deduplicates identical dose entries to prevent double-counting.
+   - Handles zero-dose periods safely (returns `has_data = False`, `adherence_percentage = None`) without division errors.
+   - Medication-wise breakdown showing adherence % and due/taken counts per prescription.
+   - Interactive Plotly stacked daily dose confirmation chart with secondary adherence trend line.
+   - Weekly adherence trend aggregation.
+4. **Health Trend Analytics**:
+   - Full integration with Phase 7 clinical vitals (Blood Pressure, Blood Sugar, Weight, Heart Rate, Oxygen Saturation, Body Temperature).
+   - Dynamic measurement type selector and unit selector.
+   - **Unit Isolation**: Incompatible measurement units (e.g., `mg/dL` vs `mmol/L`, or `kg` vs `lb`) are separated and never blended numerically.
+   - Summary cards displaying minimum, maximum, and average values (systolic/diastolic for Blood Pressure).
+   - Informative empty states when insufficient data exists (< 2 measurements).
+5. **Doctor Appointment Analytics**:
+   - Breakdown of total, upcoming, completed, cancelled, and missed visits.
+   - **Strict Rule**: Cancelled appointments are strictly excluded from completed counts.
+   - Monthly appointment volume distribution chart.
+   - Consultation type distribution chart (e.g., General check-up, Specialist, Follow-up).
+6. **Care Activity Analytics**:
+   - Categorized activity breakdown (Medication, Reminders & Escalations, Care Circle, Notes, Emergency SOS).
+   - Distribution bar chart by care activity category.
+   - **Privacy Enforcement**: Restricted caregiver-only notes are sanitized for family viewers.
+7. **RFC-4180 Compliant CSV Export**:
+   - Comprehensive CSV report download incorporating executive metrics, medication breakdown, appointments, vitals, and activity logs.
+   - UTF-8 encoding, clear filenames (`dearly_report_{ward_id}_{start_date}_to_{end_date}.csv`), and clean handling of empty datasets.
+   - Zero exposure of sensitive authentication credentials (passwords, salts, tokens).
+8. **Clinical Safety & Non-Diagnostic Guardrails**:
+   - Prominently displays non-diagnostic medical disclaimer across all analytics views and exports.
+   - Zero automated risk scoring, disease diagnosis, or treatment alteration claims.
+9. **100% Test Coverage**: 23 of 23 mandatory Phase 9 test scenarios passing; 163 of 163 total tests passing across all project test suites with 0 errors and 0 failures. Zero emojis across all code, tests, and documentation.
 
 ---
 
-## 2. Completed in Phase 8
+## 2. Completed in Phase 9
 
-### A. Emergency SOS Dashboard
-- Added `"Emergency SOS"` navigation tab to Elderly, Caregiver, and Family views.
-- Top banner alert dynamically surfaces active emergencies across pages (`[ACTIVE ALERT]` in navigation and prominent alert banner in dashboard).
-- Accessible 3-tab layout:
-  - Tab 1: **Activate Emergency SOS** (Senior trigger with confirmation dialog, active emergency status card with response notes, Indian helpline directory).
-  - Tab 2: **Emergency Contacts Directory** (Priority-ranked contacts, primary contact badge, add/edit/delete modal forms).
-  - Tab 3: **Emergency Assistance History** (Chronological history of requests with expandable audit trail).
+### A. Analytics Navigation & Role Access
+- Added `"Analytics & Reports"` to navigation across all user roles:
+  - Elderly: Views own reports and personal adherence trends.
+  - Caregiver: Selects from linked elderly wards; views detailed breakdowns and exports reports.
+  - Family: Observes permitted summaries and health trends with read-only safeguards.
+- Enforced server-side permissions: `enforce_elderly_access(user, elderly_user_id, write_access=False)` on every query.
 
-### B. SOS Activation Workflow
-- Function `activate_emergency_sos(elderly_user_id, triggered_by_user_id, location_notes, urgency_reason)`:
-  - Verifies elderly user existence and access permissions.
-  - Prevents duplicate activation if an active emergency exists.
-  - Creates record in `emergency_requests`.
-  - Logs initial transition in `emergency_status_history`.
-  - Dispatches notifications to all active Care Circle members (`status = 'active'`).
-  - Logs structured activity log event.
+### B. Overview Dashboard
+- Executive KPI card grid:
+  - Overall Adherence Rate
+  - Doses Taken / Due
+  - Skipped & Overdue
+  - Completed & Upcoming Appointments
+- Secondary summary cards explaining adherence calculation standards and data volume counts.
 
-### C. Emergency Contact Management
-- Validations:
-  - Name required (>= 2 characters).
-  - Phone required (digits only after stripping formatting, minimum 7 digits).
-  - Relationship required.
-- Single Primary Rule: Setting any contact as primary automatically clears the primary status of all other contacts for that senior.
-- Role Permissions: Seniors and editor caregivers can add, update, delete, and set primary contacts. Family members have read-only visibility.
+### C. Medication Adherence Analysis
+- Formula: `Adherence (%) = (Taken Doses / Total Due Doses) x 100`.
+- Daily dose confirmations and adherence % Plotly chart.
+- Medication-wise performance table (Medication, Dosage, Total Due, Taken, Skipped, Overdue, Adherence Rate, Status).
+- Multi-week adherence trend aggregation table.
 
-### D. Response Coordination & Status Lifecycle
-- `acknowledge_emergency`: Moves status to `acknowledged` with optional response notes; dispatches notifications to senior and other circle members.
-- `update_assistance_status`: Moves status to `assistance_in_progress` with progress updates.
-- `resolve_emergency`: Moves status to `resolved` with resolution summary; clears active status.
-- `cancel_emergency`: Moves status to `cancelled` with cancellation reason.
-- Immutable transition audit trail maintained in `emergency_status_history`.
+### D. Health Trend Analytics
+- Multi-vital selector with unit isolation.
+- Interactive Plotly chart with shaded reference zones.
+- Graceful handling for single-point readings with informative guidance.
+- Filterable readings log table with recorded timestamps and actor attribution.
+
+### E. Appointment Analytics
+- Metric counters: Total, Completed, Upcoming, Cancelled, Missed.
+- Plotly chart for appointments by type (horizontal bar).
+- Plotly stacked bar chart for monthly appointment history.
+- Status-filtered appointment table.
+
+### F. Care Activity & CSV Export
+- Activity volumes by care category Plotly chart.
+- Chronological activity stream with category filtering.
+- One-click RFC-4180 CSV export download button.
 
 ---
 
-## 3. Database Schema Modifications
+## 3. Database & Performance Considerations
 
-Database file: [data/dearly.db](file:///d:/Dearly/data/dearly.db)  
-Added tables and indexes in [database.py](file:///d:/Dearly/database.py):
-
-### Table: `emergency_contacts`
-```sql
-CREATE TABLE IF NOT EXISTS emergency_contacts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    elderly_user_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    relationship TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    email TEXT DEFAULT '',
-    is_primary INTEGER DEFAULT 0,
-    priority_order INTEGER DEFAULT 1,
-    notes TEXT DEFAULT '',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT,
-    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_emergency_contacts_elderly ON emergency_contacts(elderly_user_id, is_primary);
-```
-
-### Table: `emergency_requests`
-```sql
-CREATE TABLE IF NOT EXISTS emergency_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    elderly_user_id INTEGER NOT NULL,
-    triggered_by_user_id INTEGER NOT NULL,
-    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'acknowledged', 'assistance_in_progress', 'resolved', 'cancelled')),
-    location_notes TEXT DEFAULT '',
-    urgency_reason TEXT DEFAULT '',
-    acknowledged_by INTEGER,
-    acknowledged_at TEXT,
-    resolved_by INTEGER,
-    resolved_at TEXT,
-    resolution_notes TEXT DEFAULT '',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT,
-    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(triggered_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY(acknowledged_by) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY(resolved_by) REFERENCES users(id) ON DELETE SET NULL
-);
-CREATE INDEX IF NOT EXISTS idx_emergency_requests_elderly ON emergency_requests(elderly_user_id, status);
-CREATE INDEX IF NOT EXISTS idx_emergency_requests_created ON emergency_requests(created_at);
-```
-
-### Table: `emergency_status_history`
-```sql
-CREATE TABLE IF NOT EXISTS emergency_status_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    request_id INTEGER NOT NULL,
-    elderly_user_id INTEGER NOT NULL,
-    actor_user_id INTEGER NOT NULL,
-    from_status TEXT NOT NULL,
-    to_status TEXT NOT NULL,
-    response_note TEXT DEFAULT '',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(request_id) REFERENCES emergency_requests(id) ON DELETE CASCADE,
-    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_emergency_history_req ON emergency_status_history(request_id, created_at);
-```
+- **Zero Duplication**: All analytics are derived directly from existing relational tables (`medications`, `medication_logs`, `health_readings`, `appointments`, `activity_logs`, `users`).
+- **Read-Only Invariance**: Generating analytics mutates zero records in the database.
+- **Efficient Indexing**: Leverages existing compound indexes:
+  - `idx_med_logs_scheduled` on `medication_logs(medication_id, scheduled_date)`
+  - `idx_health_readings_elderly` on `health_readings(elderly_user_id, recorded_on)`
+  - `idx_appointments_elderly` on `appointments(elderly_user_id, appointment_date)`
+  - `idx_care_circle_elderly` on `care_circle(elderly_user_id, member_user_id)`
+- **Parameterized SQL**: All date range filters and profile IDs are bound via parameters.
 
 ---
 
 ## 4. Test Evidence
 
-Executed 20-scenario Phase 8 test suite in [test_phase8_emergency.py](file:///d:/Dearly/test_phase8_emergency.py) and full regression suite across all 140 tests:
+Executed 23-scenario Phase 9 test suite in [test_phase9_analytics.py](file:///d:/Dearly/test_phase9_analytics.py) and full regression suite across all 163 tests:
 ```powershell
-python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py
-............................................................................................................................................
-Ran 140 tests in 13.471s — OK
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py test_phase9_analytics.py
+...................................................................................................................................................................
+Ran 163 tests in 25.440s — OK
 ```
 
 | Test Case | Scenario Tested | Result |
 |---|---|---|
-| `test_01` | Elderly user can access SOS dashboard and contacts list | Passed |
-| `test_02` | Elderly user can activate an SOS request | Passed |
-| `test_03` | Safety disclaimer is displayed on SOS trigger interface | Passed |
-| `test_04` | Duplicate emergency activation is prevented when active request exists | Passed |
-| `test_05` | Active caregivers receive in-app notifications on SOS activation | Passed |
-| `test_06` | Revoked or inactive care circle members receive zero notifications | Passed |
-| `test_07` | Authorized family members receive permitted in-app notifications | Passed |
-| `test_08` | Active emergency banner is visible across dashboards | Passed |
-| `test_09` | Caregiver can acknowledge an active emergency | Passed |
-| `test_10` | Caregiver can update assistance status to 'assistance_in_progress' | Passed |
-| `test_11` | Authorized user can resolve emergency with resolution notes | Passed |
-| `test_12` | Status transition history is recorded completely in `emergency_status_history` | Passed |
-| `test_13` | Add emergency contact with validated phone and fields | Passed |
-| `test_14` | Setting a new primary contact updates existing primary to non-primary | Passed |
-| `test_15` | Caregiver with editor permissions can manage emergency contacts | Passed |
-| `test_16` | Family member has read-only access to emergency contacts | Passed |
-| `test_17` | Prevent access to emergency details for unrelated elderly profiles | Passed |
-| `test_18` | Emergency history and status logs persist across application restart | Passed |
-| `test_19` | Optional location notes can be included without fabricated GPS | Passed |
-| `test_20` | Full regression verification (medications, reminders, appointments, vitals) | Passed |
+| `test_01` | Medication adherence calculation is correct (`(Taken / Total Due) * 100`) | Passed |
+| `test_02` | Future scheduled doses are strictly excluded from due counts | Passed |
+| `test_03` | Zero-dose periods safely return `has_data=False` without division errors | Passed |
+| `test_04` | Duplicate dose logs for the same slot are deduplicated | Passed |
+| `test_05` | Taken, skipped, missed, and overdue statuses are categorized accurately | Passed |
+| `test_06` | Daily adherence trend contains chronological breakdown per date | Passed |
+| `test_07` | Weekly adherence trend aggregates into multi-day chunks | Passed |
+| `test_08` | Medication-wise breakdown computes distinct metrics per prescription | Passed |
+| `test_09` | Health trend queries actual readings and calculates stats accurately | Passed |
+| `test_10` | Querying dates with no readings produces clean empty states | Passed |
+| `test_11` | Incompatible measurement units are isolated and not blended | Passed |
+| `test_12` | Appointment status counts are calculated correctly | Passed |
+| `test_13` | Cancelled appointments are strictly excluded from completed counts | Passed |
+| `test_14` | Activity analytics filters logs accurately by category | Passed |
+| `test_15` | Date range filters apply strictly to metrics and records | Passed |
+| `test_16` | Elderly users attempting to access another ward are blocked | Passed |
+| `test_17` | Caregivers can access linked wards, but unlinked wards raise `PermissionError` | Passed |
+| `test_18` | Restricted caregiver-only notes are sanitized for family viewers | Passed |
+| `test_19` | CSV export contains structured care data without leaking sensitive tokens | Passed |
+| `test_20` | CSV export handles zero-data periods safely with valid RFC-4180 format | Passed |
+| `test_21` | Generating analytics is strictly read-only and mutates zero database rows | Passed |
+| `test_22` | Full regression verification across Phase 1-8 operations | Passed |
+| `test_23` | Analytics persist in SQLite and yield identical results across restarts | Passed |
 
 ---
 
-## 5. Files Created & Modified in Phase 8
+## 5. Files Created & Modified in Phase 9
 
 ### Created:
-1. **[views/emergency_view.py](file:///d:/Dearly/views/emergency_view.py)**: Dedicated 3-tab Emergency SOS view (Activate SOS, Emergency Contacts Directory, Emergency History & Audit).
-2. **[test_phase8_emergency.py](file:///d:/Dearly/test_phase8_emergency.py)**: Mandatory 20-scenario automated test suite.
+1. **[services/analytics_service.py](file:///d:/Dearly/services/analytics_service.py)**: Decoupled analytics service (date resolution, KPI metrics, adherence breakdown, health trends, appointments, activity analytics, CSV report generator).
+2. **[views/analytics_view.py](file:///d:/Dearly/views/analytics_view.py)**: Dedicated 5-tab Analytics & Reports Streamlit view (Overview, Adherence, Health Trends, Appointments, Care Activity & Export).
+3. **[test_phase9_analytics.py](file:///d:/Dearly/test_phase9_analytics.py)**: Mandatory 23-scenario automated test suite.
 
 ### Modified:
-1. **[database.py](file:///d:/Dearly/database.py)**: Added `emergency_contacts`, `emergency_requests`, and `emergency_status_history` tables with indexes; seeded initial demo emergency contacts for Asha Patil.
-2. **[services/emergency_service.py](file:///d:/Dearly/services/emergency_service.py)**: Complete emergency service implementation (contact CRUD, SOS activation, duplicate guard, circle notification routing, status lifecycle, history tracking, backward-compatible wrappers).
-3. **[services/permissions.py](file:///d:/Dearly/services/permissions.py)**: Added `can_view_emergency` and `can_manage_emergency` RBAC helpers; added `"Emergency SOS"` to permitted pages.
-4. **[app.py](file:///d:/Dearly/app.py)**: Connected `render_emergency_view`, routed `"Emergency SOS"` and `"Emergency Contacts"` across all roles, and added dynamic navigation active alert badge (`[ACTIVE ALERT]`).
-5. **[views/elderly_view.py](file:///d:/Dearly/views/elderly_view.py)**: Connected Emergency Contacts and SOS view.
-6. **[PROJECT_STATUS.md](file:///d:/Dearly/PROJECT_STATUS.md)**: Updated Phase 8 status report.
-7. **[FEATURE_CHECKLIST.md](file:///d:/Dearly/FEATURE_CHECKLIST.md)**: Verified requirement checklist.
-8. **[EVALUATION_MAPPING.md](file:///d:/Dearly/EVALUATION_MAPPING.md)**: Added jury evaluation steps for Emergency SOS.
-9. **[README.md](file:///d:/Dearly/README.md)**: Updated architecture and test instructions.
+1. **[services/permissions.py](file:///d:/Dearly/services/permissions.py)**: Added `"Analytics & Reports"` to `allowed_pages` across all roles; implemented `can_view_analytics()`.
+2. **[app.py](file:///d:/Dearly/app.py)**: Added `"Analytics & Reports"` to role navigation shells; routed to `render_analytics_view(user)`.
+3. **[PROJECT_STATUS.md](file:///d:/Dearly/PROJECT_STATUS.md)**: Updated Phase 9 status report.
+4. **[FEATURE_CHECKLIST.md](file:///d:/Dearly/FEATURE_CHECKLIST.md)**: Verified requirement checklist.
+5. **[EVALUATION_MAPPING.md](file:///d:/Dearly/EVALUATION_MAPPING.md)**: Added jury evaluation steps for Analytics & Reports.
+6. **[README.md](file:///d:/Dearly/README.md)**: Updated architecture and test instructions.
 
 ---
 
 ## 6. Known Limitations & Strict Scope
 
-- **In-App Alerts Only**: Emergency notifications operate strictly within the application session and notifications table. No SMS, WhatsApp, phone call, or push delivery is claimed or simulated as real.
-- **No Direct Dispatch**: Dearly does not automatically dispatch ambulances or police. Users are directed to call 112, 108, or 100 directly.
-- **No Fabricated GPS**: Only explicit user-entered location notes (such as room or address details) are recorded; no simulated GPS tracking coordinates are generated.
-- **Non-Diagnostic**: Emergency workflows handle communication and coordination only; zero automated medical diagnosis or triage is performed.
+- **Non-Diagnostic**: Analytics and trends are strictly informational for routine tracking and care coordination. Dearly never provides disease diagnoses, automated risk assessments, or clinical treatment advice.
+- **No Predictive AI Models**: Adherence trends reflect actual historical data; predictive regression modeling is intentionally excluded.
+- **No External Hospital Integration**: Reports operate within the application and can be exported as standard CSV files.
 
 ---
 
@@ -217,4 +182,5 @@ Ran 140 tests in 13.471s — OK
 - [x] Phase 6: Doctor Appointment Scheduling & Coordination
 - [x] Phase 7: Health Vitals & Clinical Readings (BP, Glucose, SpO2)
 - [x] Phase 8: Emergency SOS Workflow & Verification
-- [ ] Phase 9: AI Care Assistant & Daily Briefings (Pending Approval)
+- [x] Phase 9: Analytics & Reports
+- [ ] Phase 10: AI Care Assistant & Daily Briefings (Pending Approval)

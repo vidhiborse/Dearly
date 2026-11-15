@@ -11,6 +11,7 @@ from views.care_circle_view import render_care_circle_view
 from views.appointment_view import render_appointment_view
 from views.health_view import render_health_view
 from views.emergency_view import render_emergency_view
+from views.analytics_view import render_analytics_view
 from services.permissions import can_view_page
 from services.reminder_service import sync_reminders_and_escalations, get_unread_notification_count
 from services.appointment_service import sync_appointment_reminders
@@ -76,13 +77,13 @@ if st.session_state.user:
 
     # Role-based navigation whitelist
     if role == "elderly":
-        nav_options = ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Emergency Contacts", "My Profile"]
+        nav_options = ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Emergency Contacts", "Analytics & Reports", "My Profile"]
         default_page = "Home"
     elif role == "caregiver":
-        nav_options = ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Emergency SOS", "Activity History", "My Profile"]
+        nav_options = ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Emergency SOS", "Analytics & Reports", "Activity History", "My Profile"]
         default_page = "Overview"
     elif role == "family":
-        nav_options = ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "Emergency SOS", "My Profile"]
+        nav_options = ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "Emergency SOS", "Analytics & Reports", "My Profile"]
         default_page = "Overview"
     else:
         nav_options = ["Home", "My Profile"]
@@ -160,6 +161,8 @@ if st.session_state.user:
         render_health_view(user, page=selected_page)
     elif selected_page in ("Emergency SOS", "Emergency Contacts"):
         render_emergency_view(user)
+    elif selected_page in ("Analytics & Reports", "Reports & Analytics"):
+        render_analytics_view(user)
     elif role == "elderly":
         render_elderly_view(user, page=selected_page)
     elif role == "caregiver":
