@@ -63,7 +63,9 @@ def init_db():
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK(role IN ('elderly','caregiver','family')),
             phone TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            passcode TEXT DEFAULT '1234',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT
         );
 
         CREATE TABLE IF NOT EXISTS elderly_profiles (
