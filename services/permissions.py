@@ -71,11 +71,41 @@ def can_view_page(user: dict, requested_page: str) -> bool:
 
     role = user.get("role", "")
     allowed_pages = {
-        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Appointments", "My Health", "Emergency Contacts", "My Profile"],
-        "caregiver": ["Overview", "Reminders & Alerts", "Elderly Profiles", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"],
-        "family": ["Overview", "Reminders & Alerts", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"],
+        "elderly": ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Emergency Contacts", "My Profile"],
+        "caregiver": ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"],
+        "family": ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"],
     }
     return requested_page in allowed_pages.get(role, [])
+
+
+def can_view_care_circle(user: dict, elderly_user_id: int) -> bool:
+    """Checks if user can view an elderly person's care circle."""
+    return can_access_elderly_record(user, elderly_user_id)
+
+
+def can_manage_care_circle(user: dict, elderly_user_id: int) -> bool:
+    """
+    Checks if user is authorized to invite, remove, or modify care circle roles:
+    - Elderly individual: permitted for their own circle.
+    - Caregiver: permitted if linked with 'editor' permission in care_circle.
+    - Family: Denied by default.
+    """
+    return can_manage_elderly_care(user, elderly_user_id)
+
+
+def can_view_notes(user: dict, elderly_user_id: int) -> bool:
+    """Checks if user is authorized to view shared care notes."""
+    return can_access_elderly_record(user, elderly_user_id)
+
+
+def can_write_notes(user: dict, elderly_user_id: int) -> bool:
+    """
+    Checks if user is authorized to create/edit care notes:
+    - Elderly individual: permitted for own notes.
+    - Caregiver with 'editor' permission: permitted.
+    - Family member (viewer): denied.
+    """
+    return can_manage_elderly_care(user, elderly_user_id)
 
 def enforce_elderly_access(user: dict, elderly_user_id: int, write_access: bool = False):
     """

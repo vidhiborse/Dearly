@@ -9,7 +9,7 @@
 | **Phase 2: Authentication & User Management** | | | |
 | User registration for Elderly role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_01`). |
 | User registration for Caregiver role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_02`). |
-| User registration for Caregiver role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_03`). |
+| User registration for Family Member role | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_03`). |
 | Required field & name length validation | `services/user_service.py` | Complete | Name >= 2 chars, phone >= 7 digits enforced. |
 | Strict email format regex validation | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_05`). |
 | Duplicate email prevention (case-insensitive) | `services/user_service.py` | Complete | Verified in `test_phase2_auth.py` (`test_04`). |
@@ -64,3 +64,24 @@
 | Timezone and date boundary handling | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_15`). |
 | Idempotent reminder generation on page refreshes | `services/reminder_service.py` | Complete | Verified in `test_phase4_reminders.py` (`test_16`). |
 | Existing Phase 3 medication management regression | `test_phase3_meds.py`, `test_phase4_reminders.py` | Complete | Verified in `test_phase4_reminders.py` (`test_17`) & 57/57 tests passing. |
+| **Phase 5: Family & Caregiver Circle** | | | |
+| View care circle members & structured dashboard | `services/care_circle_service.py`, `views/care_circle_view.py` | Complete | Verified in `test_phase5_circle.py` (`test_01`). |
+| Invite existing registered caregiver | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_02`). |
+| Invite existing registered family member | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_03`). |
+| Reject invitation to unknown email address | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_04`). |
+| Prevent self-invitation & senior self-invitation | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_05`). |
+| Prevent duplicate pending invitations | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_06`). |
+| Accept invitation and activate circle connection | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_07`). |
+| Reject invitation without granting profile access | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_08`). |
+| Pending invitations grant zero access | `services/permissions.py`, `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_09`). |
+| Accepted connection grants intended permission (viewer vs editor) | `services/permissions.py` | Complete | Verified in `test_phase5_circle.py` (`test_10`). |
+| Prevent access to unrelated elderly profiles | `services/permissions.py` | Complete | Verified in `test_phase5_circle.py` (`test_11`). |
+| Remove member from care circle with notification | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_12`). |
+| Removed members immediately lose all profile access | `services/permissions.py` | Complete | Verified in `test_phase5_circle.py` (`test_13`). |
+| Add and view shared care notes | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_14`). |
+| Privacy enforcement: family cannot view private caregiver notes | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_15`). |
+| Display actual care activity with category filtering | `services/activity_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_16`). |
+| Assign and change single primary caregiver | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_17`). |
+| In-app notification integration for circle events | `services/care_circle_service.py` | Complete | Verified in `test_phase5_circle.py` (`test_18`). |
+| Existing medication and reminder regression verification | `test_phase3_meds.py`, `test_phase4_reminders.py` | Complete | Verified in `test_phase5_circle.py` (`test_19`). |
+| Complete care circle persistence across restart | `database.py` | Complete | Verified in `test_phase5_circle.py` (`test_20`). |

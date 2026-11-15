@@ -15,9 +15,9 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 ### Pre-Configured Test Accounts (Password: `demo123`)
 | Role | Name | Email | Primary Testing Goal |
 |---|---|---|---|
-| **Elderly** | Asha Patil (74) | `elderly@dearly.demo` | High-accessibility, large-button routine, emergency SOS |
-| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | Multi-ward switcher, adherence tracking, medication CRUD, escalations |
-| **Family** | Neha Patil (Daughter) | `family@dearly.demo` | Peace-of-mind dashboard, adherence trends, read-only medicines |
+| **Elderly** | Asha Patil (74) | `elderly@dearly.demo` | High-accessibility, large-button routine, care circle invitations |
+| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | Primary caregiver lead, medication CRUD, care notes, escalations |
+| **Family** | Neha Patil (Daughter) | `family@dearly.demo` | Peace-of-mind dashboard, adherence trends, shared care notes |
 
 *Note: You can switch roles instantly at any time using the "Switch Role for Evaluation" buttons located in the left sidebar.*
 
@@ -36,7 +36,7 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 
 ### Testing Reminders, Alerts & Caregiver Escalation (Phase 4)
 1. **Notification Center Navigation**:
-   - Log in as any persona. Notice the new navigation menu item: **"Reminders & Alerts"** (with live unread badge `[N new]`).
+   - Log in as any persona. Notice navigation menu item: **"Reminders & Alerts"** (with live unread badge `[N new]`).
 2. **Caregiver View (`caregiver@dearly.demo`)**:
    - Click **"Reminders & Alerts"**.
    - **Active Reminders Tab**: Inspect deterministic status badges (`Upcoming`, `Due Now`, `Overdue`, `Completed`).
@@ -48,6 +48,30 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
    - **Notifications Stream Tab**: View in-app alerts filtered by *Due Now*, *Overdue*, and *Completed*.
    - Click **"Mark as Read"** or **"Mark All as Read"** to update live counters.
    - **Reminder Settings Tab**: Adjust the grace period slider (e.g., 15 min), toggle in-app alerts, or change time format between 12-hour and 24-hour military display.
+
+### Testing Family & Caregiver Circle (Phase 5)
+1. **Care Circle Navigation**:
+   - Select **"Care Circle"** from the left navigation sidebar.
+   - Notice live invitation counter if any pending invites are awaiting approval (`Care Circle [N new]`).
+2. **Care Circle Network Tab**:
+   - Inspect the **Designated Primary Caregiver** banner highlighting Rahul Patil as Primary Lead.
+   - Inspect the **Authorized Caregivers** and **Family Members** columns.
+   - For caregivers/elderly: Test the **"Set as Primary"** button or **"Remove Connection"** expander with confirmation.
+3. **Invite Member Tab**:
+   - Enter an email of a registered user (or register a test user first).
+   - Select relationship (`Son`, `Daughter`, `Spouse`, `Professional caregiver`), role category (`Caregiver` vs `Family`), and permission level (`Editor` vs `Viewer`).
+   - Submit invitation. Notice the pending invitation appears immediately under "Dispatched Pending Invitations".
+4. **My Invitations Tab**:
+   - Switch to the invited user account.
+   - Open **"Care Circle"** -> **"My Invitations"**.
+   - Inspect the invitation card showing elderly ward name, inviter, relationship, and permission level.
+   - Click **"Accept"** to activate the connection, or **"Decline"** to reject without granting profile access.
+5. **Shared Care Notes Tab**:
+   - Click **"Write a New Care Note"**: Enter a title, select a category (`routine`, `observation`, `diet`), choose visibility (`All Circle Members` vs `Caregivers Only`), and save.
+   - Switch to **Family Member (`family@dearly.demo`)**: Verify that notes marked `caregivers_only` are hidden, while `circle` notes are readable.
+6. **Care Activity Timeline Tab**:
+   - Inspect the chronological audit stream of real events.
+   - Filter by event type (`Medication & Dose Confirmations`, `Reminders & Alerts`, `Care Circle Updates`, `Care Notes`).
 
 ---
 
@@ -80,12 +104,19 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 - **In-App Notification Center**: Dedicated notification management interface in [views/notification_view.py](file:///d:/Dearly/views/notification_view.py) with unread filtering, category filtering, and one-click mark-as-read.
 - **Caregiver Escalation System**: When doses are overdue past grace periods, alerts are automatically dispatched to caregivers linked in `care_circle` with `editor` privileges.
 - **Strict Clinical Non-Conflation**: Escalation acknowledgement records caregiver oversight without falsifying dose intake logs.
-- **Idempotent Synchronization**: Database-level unique constraints on `notifications` and `caregiver_escalations` guarantee zero duplicate alerts on page refreshes or poll intervals.
 
-### Criterion 5: Automated Testing & Verification
+### Criterion 5: Family & Caregiver Circle (Phase 5)
+- **Care Circle Network**: Multi-ward coordination connecting seniors, family members, and caregivers in [services/care_circle_service.py](file:///d:/Dearly/services/care_circle_service.py).
+- **In-App Invitation Lifecycle**: Two-sided invitation and approval workflow stored in SQLite `care_invitations`. Pending invitations grant zero profile access.
+- **Single Primary Caregiver Rule**: Enforced server-side single primary caregiver designation with safe unassignment.
+- **Shared Care Notes with Privacy**: Granular visibility controls (`circle` for full circle, `caregivers_only` hidden from family viewers) in `care_notes`.
+- **Care Activity Timeline**: Complete chronological audit stream with category and date filtering in [services/activity_service.py](file:///d:/Dearly/services/activity_service.py).
+
+### Criterion 6: Automated Testing & Verification
 - **Test Suites**:
-  - `test_phase4_reminders.py`: 17 mandatory Phase 4 tests covering reminder statuses, grace period boundaries, caregiver escalation, duplicate prevention, acknowledgement separation, and multi-profile isolation.
-  - `test_phase3_meds.py`: 17 mandatory Phase 3 tests covering CRUD, date validation, period grouping, adherence mathematics, overdue exclusion, and persistence.
+  - `test_phase5_circle.py`: 20 mandatory Phase 5 tests covering invitation workflow, permission levels, care notes privacy, primary caregiver designation, and persistence.
+  - `test_phase4_reminders.py`: 17 mandatory Phase 4 tests covering reminder statuses, grace period boundaries, caregiver escalation, and duplicate prevention.
+  - `test_phase3_meds.py`: 17 mandatory Phase 3 tests covering CRUD, date validation, period grouping, and adherence mathematics.
   - `test_phase2_auth.py`: 15 authentication & RBAC unit tests.
   - `test_app.py`: 8 end-to-end integration tests.
-  - Total: **57 passing automated tests** with 0 errors and 0 failures.
+  - Total: **77 passing automated tests** with 0 errors and 0 failures.

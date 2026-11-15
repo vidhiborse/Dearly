@@ -7,8 +7,10 @@ from views.caregiver_view import render_caregiver_view
 from views.family_view import render_family_view
 from views.profile_view import render_profile_view
 from views.notification_view import render_notification_view
+from views.care_circle_view import render_care_circle_view
 from services.permissions import can_view_page
 from services.reminder_service import sync_reminders_and_escalations, get_unread_notification_count
+from services.care_circle_service import get_user_pending_invitations
 from services.auth_service import get_accessible_elderly_wards
 
 # Initialize database schema and demo data
@@ -55,6 +57,7 @@ if st.session_state.user:
 
     unread_notifs = get_unread_notification_count(user["id"])
     notif_nav_title = f"Reminders & Alerts ({unread_notifs})" if unread_notifs > 0 else "Reminders & Alerts"
+    my_invites_count = len(get_user_pending_invitations(user))
 
     st.sidebar.markdown(f"""
     <div style="background-color: #FFFFFF; border: 1px solid #DFE6EE; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
@@ -66,13 +69,13 @@ if st.session_state.user:
 
     # Role-based navigation whitelist
     if role == "elderly":
-        nav_options = ["Home", "My Medicines", "Reminders & Alerts", "Appointments", "My Health", "Emergency Contacts", "My Profile"]
+        nav_options = ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Emergency Contacts", "My Profile"]
         default_page = "Home"
     elif role == "caregiver":
-        nav_options = ["Overview", "Reminders & Alerts", "Elderly Profiles", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"]
+        nav_options = ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"]
         default_page = "Overview"
     elif role == "family":
-        nav_options = ["Overview", "Reminders & Alerts", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"]
+        nav_options = ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"]
         default_page = "Overview"
     else:
         nav_options = ["Home", "My Profile"]
@@ -85,6 +88,8 @@ if st.session_state.user:
     def format_nav_item(opt_name: str) -> str:
         if opt_name == "Reminders & Alerts" and unread_notifs > 0:
             return f"Reminders & Alerts [{unread_notifs} new]"
+        elif opt_name == "Care Circle" and my_invites_count > 0:
+            return f"Care Circle [{my_invites_count} new]"
         return opt_name
 
     selected_page = st.sidebar.radio(
@@ -136,6 +141,8 @@ if st.session_state.user:
         render_profile_view(user)
     elif selected_page == "Reminders & Alerts":
         render_notification_view(user)
+    elif selected_page == "Care Circle":
+        render_care_circle_view(user)
     elif role == "elderly":
         render_elderly_view(user, page=selected_page)
     elif role == "caregiver":

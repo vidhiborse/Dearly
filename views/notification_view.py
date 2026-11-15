@@ -162,7 +162,7 @@ def render_notification_view(user: dict):
         with f_c1:
             filter_type = st.selectbox(
                 "Filter Alert Type",
-                ["All Alerts", "Due Now", "Overdue", "Caregiver Escalations", "Dose Confirmations"],
+                ["All Alerts", "Due Now", "Overdue", "Caregiver Escalations", "Dose Confirmations", "Care Circle Updates"],
                 key="notif_stream_filter",
             )
         with f_c2:
@@ -174,6 +174,7 @@ def render_notification_view(user: dict):
             "Overdue": "overdue",
             "Caregiver Escalations": "escalation",
             "Dose Confirmations": "completed",
+            "Care Circle Updates": "system",
         }
         notifs = get_user_notifications(
             user=user,

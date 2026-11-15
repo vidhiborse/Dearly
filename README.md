@@ -15,8 +15,8 @@ Dearly connects all three stakeholders in a **closed-loop healthcare ecosystem**
 | Stakeholder | Key Experience | Value Delivered |
 |---|---|---|
 | **Elderly Individual** | Simplified, high-contrast, distraction-free screen answering *"What medicine do I take right now?"* in 5 seconds with large tap confirmation. | Independence, reduced cognitive burden, and reassurance. |
-| **Caregiver** | Real-time adherence tracking, overdue dose escalation alerts, medication CRUD, appointment scheduling, and vital logs. | Coordinated care, fewer errors, and actionable oversight. |
-| **Family Member** | Peace of mind through weekly adherence trends, vital history, doctor calendar, and AI-synthesized daily briefings. | Remote reassurance, proactive support, and staying connected. |
+| **Caregiver** | Real-time adherence tracking, overdue dose escalation alerts, care circle management, appointment scheduling, and vital logs. | Coordinated care, fewer errors, and actionable oversight. |
+| **Family Member** | Peace of mind through weekly adherence trends, vital history, care notes, doctor calendar, and AI-synthesized daily briefings. | Remote reassurance, proactive support, and staying connected. |
 
 ---
 
@@ -26,9 +26,9 @@ The platform includes pre-seeded realistic healthcare data for immediate jury an
 
 | Role | Name | Email | Password | Access Details |
 |---|---|---|---|---|
-| **Elderly** | Asha Patil (Age 74) | `elderly@dearly.demo` | `demo123` | Accessible routine, large confirmation buttons, SOS button |
-| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | `demo123` | Full medication CRUD, missed dose alerts, vital recording, escalations |
-| **Family** | Neha Patil (Daughter) | `family@dearly.demo` | `demo123` | Observability, Plotly adherence charts, AI care briefing |
+| **Elderly** | Asha Patil (Age 74) | `elderly@dearly.demo` | `demo123` | Accessible routine, large confirmation buttons, SOS button, care circle invitations |
+| **Caregiver** | Rahul Patil (Son) | `caregiver@dearly.demo` | `demo123` | Primary caregiver lead, medication CRUD, care notes, missed dose alerts |
+| **Family** | Neha Patil (Daughter) | `family@dearly.demo` | `demo123` | Observability, Plotly adherence charts, shared care notes, care briefing |
 
 *Tip: A role switcher is available directly in the sidebar for instant evaluation across all 3 perspectives without re-typing passwords.*
 
@@ -41,7 +41,7 @@ The platform includes pre-seeded realistic healthcare data for immediate jury an
 - **Security & Authentication**: [bcrypt](https://pypi.org/project/bcrypt/) with standard work factor 12 and salt generation.
 - **Data Persistence**: [SQLite3](https://sqlite.org/) with relational schema, foreign key enforcement, indexes, and idempotent migrations.
 - **Language**: Python 3.10+
-- **Testing**: Python standard library `unittest` suites (`test_phase2_auth.py`, `test_app.py`, `test_phase3_meds.py`, `test_phase4_reminders.py`).
+- **Testing**: Python standard library `unittest` suites (`test_phase2_auth.py`, `test_app.py`, `test_phase3_meds.py`, `test_phase4_reminders.py`, `test_phase5_circle.py`).
 
 ---
 
@@ -58,6 +58,7 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
+├── test_phase5_circle.py       # Phase 5 Family & Caregiver Circle test suite (20 tests)
 ├── test_phase4_reminders.py    # Phase 4 Reminders, Alerts & Escalation test suite (17 tests)
 ├── test_phase3_meds.py         # Phase 3 Medication Management test suite (17 tests)
 ├── test_phase2_auth.py         # Phase 2 Authentication & User Management test suite (15 tests)
@@ -73,10 +74,10 @@ dearly/
 │   ├── permissions.py          # Role-based access control (RBAC) & cross-patient guards
 │   ├── medication_service.py   # Medication CRUD, daily schedule computation, dose status, adherence
 │   ├── reminder_service.py     # Deterministic reminder engine, notifications & caregiver escalation
+│   ├── care_circle_service.py  # Care circle network, invitations, primary designation, care notes
 │   ├── appointment_service.py  # Doctor appointment management, scheduling, and completion
 │   ├── health_service.py       # Health vitals logging (BP, Blood Sugar, SpO2, Heart Rate, Weight)
-│   ├── care_circle_service.py  # Care circle permissions, profiles, and relationship management
-│   ├── activity_service.py     # Immutable audit trail and care activity stream
+│   ├── activity_service.py     # Immutable audit trail, activity timeline & category filtering
 │   ├── emergency_service.py    # Emergency SOS alert dispatch, acknowledgment, and notifications
 │   └── summary_service.py      # Algorithmic daily care briefing with strict safety guardrails
 │
@@ -85,6 +86,7 @@ dearly/
     ├── common.py               # Custom design system CSS, hero components, and disclaimers
     ├── auth_view.py            # Clean sign-in & registration with 1-click Quick Demo logins
     ├── profile_view.py         # User profile viewing and contact detail editing
+    ├── care_circle_view.py     # Care circle network, invitations, primary caregiver & notes
     ├── notification_view.py    # In-App Notification Center, reminder stream & escalation management
     ├── elderly_view.py         # High-contrast, large-button, accessible elderly interface
     ├── caregiver_view.py       # Care coordination, missed-dose escalation, medication & vitals CRUD
@@ -101,14 +103,16 @@ All database interactions use parameterized SQL statements to prevent injection 
 2. **`elderly_profiles`**: Clinical background, blood group, allergies, primary physician, and emergency contacts.
 3. **`medications`**: Prescriptions, dosages, 24h schedule times, meal timings, instructions, and stock inventory.
 4. **`medication_logs`**: Recorded dose statuses (`taken`, `pending`, `missed`, `skipped`), timestamps, and actor IDs.
-5. **`notifications`**: In-app alert queue (`due_now`, `overdue`, `escalation`, `completed`) with read/unread tracking.
+5. **`notifications`**: In-app alert queue (`due_now`, `overdue`, `escalation`, `completed`, `system`) with read/unread tracking.
 6. **`caregiver_escalations`**: Overdue dose caregiver escalations with acknowledgment lifecycle.
 7. **`reminder_settings`**: Per-user preferences (grace period in minutes, notifications enabled, 12h/24h time format).
-8. **`appointments`**: Doctor visits, hospital/clinic details, appointment timestamps, and statuses.
-9. **`health_readings`**: Vital observations (Blood Pressure, Blood Sugar, Heart Rate, SpO2, Weight).
-10. **`care_circle`**: Relational mapping between elderly individuals and authorized circle members with permission levels (`editor` vs `viewer`).
-11. **`activity_logs`**: Immutable audit logs capturing every dose confirmation, profile change, and appointment.
-12. **`emergency_alerts`**: Log of triggered SOS emergency requests with active/acknowledged lifecycle.
+8. **`care_circle`**: Relational mapping between elderly individuals and authorized circle members with permission levels (`editor` vs `viewer`), roles, and primary flag.
+9. **`care_invitations`**: Two-sided care circle invitation and approval tracking (`pending`, `accepted`, `rejected`, `revoked`).
+10. **`care_notes`**: Everyday observational and routine care notes with privacy visibility controls (`circle` vs `caregivers_only`).
+11. **`appointments`**: Doctor visits, hospital/clinic details, appointment timestamps, and statuses.
+12. **`health_readings`**: Vital observations (Blood Pressure, Blood Sugar, Heart Rate, SpO2, Weight).
+13. **`activity_logs`**: Immutable audit logs capturing every dose confirmation, profile change, invitation, and note.
+14. **`emergency_alerts`**: Log of triggered SOS emergency requests with active/acknowledged lifecycle.
 
 ---
 
@@ -138,8 +142,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all automated tests (57 tests across Auth, RBAC, Medication Management, and Reminders)
-python -m unittest test_phase2_auth.py test_app.py test_phase3_meds.py test_phase4_reminders.py
+# Run all automated tests (77 tests across Auth, RBAC, Medications, Reminders, and Care Circle)
+python -m unittest test_phase2_auth.py test_app.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py
 ```
 
 ### 5. Launch Dearly
@@ -159,6 +163,7 @@ Dearly implements strict healthcare and safety guardrails:
 - **Emergency Workflow Clarification**: Emergency SOS features trigger immediate alerts to registered family and caregiver contacts, with explicit warnings that the platform is not a replacement for municipal 911 / 112 emergency services.
 - **Permission Boundaries**: Family members with `viewer` permissions cannot modify prescriptions or delete medical records, preserving caregiver authority.
 - **Separation of Escalation & Intake**: Caregiver escalation acknowledgement logs clinical oversight; it does *never* automatically mark a medication dose as taken.
+- **Privacy Controls on Notes**: Notes marked `caregivers_only` are strictly restricted from family viewers, preserving clinical confidentiality where appropriate.
 
 ---
 

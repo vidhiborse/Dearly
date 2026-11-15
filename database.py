@@ -219,6 +219,38 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS care_invitations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            elderly_user_id INTEGER NOT NULL,
+            inviter_user_id INTEGER NOT NULL,
+            invitee_email TEXT NOT NULL,
+            invitee_user_id INTEGER,
+            relationship TEXT NOT NULL,
+            connection_role TEXT NOT NULL CHECK(connection_role IN ('caregiver', 'family')),
+            permission_level TEXT DEFAULT 'viewer' CHECK(permission_level IN ('editor', 'viewer')),
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected', 'revoked', 'expired')),
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            responded_at TEXT,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(inviter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(invitee_user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS care_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            elderly_user_id INTEGER NOT NULL,
+            author_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            category TEXT DEFAULT 'general',
+            visibility TEXT DEFAULT 'circle' CHECK(visibility IN ('circle', 'caregivers_only')),
+            is_archived INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(author_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
         CREATE INDEX IF NOT EXISTS idx_medications_elderly ON medications(elderly_user_id, active);
         CREATE INDEX IF NOT EXISTS idx_medication_logs_lookup ON medication_logs(medication_id, scheduled_date);
         CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date);
@@ -227,6 +259,9 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
         CREATE INDEX IF NOT EXISTS idx_notifications_elderly ON notifications(elderly_user_id, alert_type);
         CREATE INDEX IF NOT EXISTS idx_escalations_caregiver ON caregiver_escalations(caregiver_user_id, is_acknowledged);
+        CREATE INDEX IF NOT EXISTS idx_invitations_invitee ON care_invitations(invitee_email, status);
+        CREATE INDEX IF NOT EXISTS idx_invitations_elderly ON care_invitations(elderly_user_id, status);
+        CREATE INDEX IF NOT EXISTS idx_care_notes_elderly ON care_notes(elderly_user_id, is_archived);
         """)
 
         ensure_column(conn, "users", "phone", "TEXT")
@@ -243,6 +278,11 @@ def init_db():
         ensure_column(conn, "medications", "notes", "TEXT")
         ensure_column(conn, "medications", "updated_at", "TEXT")
         ensure_column(conn, "medication_logs", "actual_action_time", "TEXT")
+        ensure_column(conn, "care_circle", "connection_role", "TEXT DEFAULT 'family'")
+        ensure_column(conn, "care_circle", "status", "TEXT DEFAULT 'active'")
+        ensure_column(conn, "care_circle", "is_primary", "INTEGER DEFAULT 0")
+        ensure_column(conn, "care_circle", "created_by", "INTEGER")
+        ensure_column(conn, "care_circle", "updated_at", "TEXT")
 
 def create_demo_users():
     demo_users = [
@@ -284,17 +324,26 @@ def create_demo_users():
             # Care circle
             if caregiver:
                 conn.execute(
-                    """INSERT OR IGNORE INTO care_circle
-                       (elderly_user_id, member_user_id, relationship, permission_level)
-                       VALUES (?, ?, ?, ?)""",
-                    (e_id, caregiver["id"], "Son & Primary Caregiver", "editor"),
+                    """INSERT OR REPLACE INTO care_circle
+                       (elderly_user_id, member_user_id, relationship, permission_level, connection_role, status, is_primary)
+                       VALUES (?, ?, ?, ?, 'caregiver', 'active', 1)""",
+                    (e_id, caregiver["id"], "Son", "editor"),
                 )
             if family:
                 conn.execute(
-                    """INSERT OR IGNORE INTO care_circle
-                       (elderly_user_id, member_user_id, relationship, permission_level)
-                       VALUES (?, ?, ?, ?)""",
-                    (e_id, family["id"], "Daughter (Living in Pune)", "viewer"),
+                    """INSERT OR REPLACE INTO care_circle
+                       (elderly_user_id, member_user_id, relationship, permission_level, connection_role, status, is_primary)
+                       VALUES (?, ?, ?, ?, 'family', 'active', 0)""",
+                    (e_id, family["id"], "Daughter", "viewer"),
+                )
+
+            # Seed demo care note
+            if caregiver:
+                conn.execute(
+                    """INSERT OR IGNORE INTO care_notes
+                       (elderly_user_id, author_id, title, content, category, visibility)
+                       VALUES (?, ?, 'Morning Routine & Vitals Check', 'Asha completed morning routine comfortably. Blood pressure measured at 126/80 mmHg. Morning medications taken with warm breakfast.', 'routine', 'circle')""",
+                    (e_id, caregiver["id"]),
                 )
 
             # Seed demo medications if none exist
