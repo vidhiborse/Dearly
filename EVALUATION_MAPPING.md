@@ -121,6 +121,34 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 7. **Permission Enforcement**:
    - Switch to **Family Member (`family@dearly.demo`)**: Notice full observability across summaries, trends, history, and CSV export, while recording and correcting controls are disabled.
 
+### Testing Emergency SOS & Contacts (Phase 8)
+1. **Emergency SOS Navigation**:
+   - Click **"Emergency SOS"** (Caregiver / Family) or **"Emergency SOS"** / **"Emergency Contacts"** (Senior) from the navigation sidebar.
+   - If an emergency is open, observe the dynamic red `[ACTIVE ALERT]` badge in the navigation menu and the prominent top alert banner across dashboard views.
+2. **Safety Disclaimer & Indian Helplines**:
+   - Inspect the prominent safety disclaimer prominently rendered on the SOS activation page:
+     > *"Dearly SOS sends in-app alerts to your authorized care circle. It does not guarantee that someone will receive or respond to an alert. For immediate danger or a medical emergency in India, call 112 or your local emergency service directly."*
+   - Review the official Indian helpline cards: **112** (National Emergency), **108 / 102** (Ambulance), **100** (Police), and **14567** (Elderline).
+3. **Senior SOS Activation Workflow (`elderly@dearly.demo`)**:
+   - Click the large high-contrast **"TRIGGER EMERGENCY SOS"** button.
+   - Notice the two-step confirmation dialog with optional location/situation notes.
+   - Confirm activation: an active emergency card appears immediately with `pending` status, and an in-app notification is dispatched to all active care circle members.
+   - Notice that clicking activate again is blocked with a duplicate prevention notice.
+4. **Caregiver Response & Status Coordination (`caregiver@dearly.demo`)**:
+   - Open **"Emergency SOS"**: notice the active emergency request card showing Asha Patil, trigger timestamp, and notes.
+   - Test **"Acknowledge Emergency"**: enter a response note (e.g., "Received alert, checking on mother now") and click Acknowledge. Status updates to `acknowledged`.
+   - Test **"Update Assistance Status"**: enter progress note and click Set Assistance In Progress. Status transitions to `assistance_in_progress`.
+   - Test **"Resolve Emergency"**: enter resolution notes (e.g., "Visited in person, senior is safe") and confirm. Active alert clears.
+5. **Emergency Contacts Directory**:
+   - Open the **"Emergency Contacts Directory"** tab.
+   - Inspect pre-seeded contacts: Rahul Patil (Primary), Neha Patil, Dr. Sunita Kulkarni.
+   - Test adding a contact with validation (phone >= 7 digits).
+   - Test **"Set as Primary"**: verify that selecting a contact as primary automatically clears previous primary contacts.
+   - Switch to **Family Member (`family@dearly.demo`)**: verify read-only visibility (contact management forms disabled).
+6. **Emergency Assistance History**:
+   - Open the **"Emergency Assistance History"** tab.
+   - Inspect chronological requests and expand any request card to review the full transition audit trail from `emergency_status_history`.
+
 ---
 
 ## 2. Evaluation Criteria Mapping
@@ -176,8 +204,17 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
 - **Qualitative Wellbeing Observations**: Category-tagged routine logs with appointment linkage in `health_observations`.
 - **CSV Data Export**: Secure, permission-checked RFC-compliant CSV generation.
 
-### Criterion 8: Automated Testing & Verification
+### Criterion 8: Emergency SOS Workflow & Contact Management (Phase 8)
+- **Accessible Two-Step Activation**: Large high-contrast SOS button with deliberate confirmation dialog to eliminate accidental triggers in [views/emergency_view.py](file:///d:/Dearly/views/emergency_view.py).
+- **Mandatory Safety Disclaimer & Helplines**: Prominent clinical safety disclaimer and quick-reference directory for official Indian helplines (112, 108/102, 100, 14567).
+- **Active Circle Routing & Duplicate Guard**: Automatic in-app alerts routed to active Care Circle members while blocking duplicate triggers in [services/emergency_service.py](file:///d:/Dearly/services/emergency_service.py). Revoked/inactive members receive zero alerts.
+- **Full Status Lifecycle Coordination**: Structured progression (`pending` -> `acknowledged` -> `assistance_in_progress` -> `resolved` / `cancelled`) with response notes and audit trail in `emergency_status_history`.
+- **Emergency Contact Management**: Complete CRUD supporting validated phone numbers, priority ordering, and single-primary contact rule.
+- **Privacy & Role Enforcement**: Caregivers with editor permissions can manage contacts and response status; family viewers maintain read-only awareness.
+
+### Criterion 9: Automated Testing & Verification
 - **Test Suites**:
+  - `test_phase8_emergency.py`: 20 mandatory Phase 8 tests covering SOS activation, confirmation, disclaimer, duplicate guard, notifications, status history, contacts CRUD, and regression.
   - `test_phase7_health.py`: 22 mandatory Phase 7 tests covering all measurement types, validation, audit trails, charts, CSV export, and RBAC.
   - `test_phase6_appts.py`: 21 mandatory Phase 6 tests covering appointment CRUD, past-date validation, rescheduling, reminders, and RBAC.
   - `test_phase5_circle.py`: 20 mandatory Phase 5 tests covering invitation workflow, permission levels, care notes privacy, and primary caregiver designation.
@@ -185,4 +222,4 @@ Open **[http://localhost:8501](http://localhost:8501)** in your browser.
   - `test_phase3_meds.py`: 17 mandatory Phase 3 tests covering CRUD, date validation, period grouping, and adherence mathematics.
   - `test_phase2_auth.py`: 15 authentication & RBAC unit tests.
   - `test_app.py`: 8 end-to-end integration tests.
-  - Total: **120 passing automated tests** with 0 errors and 0 failures.
+  - Total: **140 passing automated tests** with 0 errors and 0 failures.

@@ -1,6 +1,6 @@
 # Dearly — Project Status
 
-**Current Phase:** Phase 7 (Health Monitoring & Health Records)  
+**Current Phase:** Phase 8 (Emergency SOS Workflow & Verification)  
 **Status:** Completed & Verified  
 **Date:** November 15, 2026  
 **Repository:** [github.com/vidhiborse/Dearly](https://github.com/vidhiborse/Dearly)
@@ -9,325 +9,201 @@
 
 ## 1. Executive Summary
 
-Phase 7 implements a robust, clinically organized, and accessible **Health Monitoring and Health Records** module for Dearly (*Care that stays close.*). The system empowers seniors, authorized caregivers, and family members to record, review, and visualize health information over time.
+Phase 8 implements an accessible, reliable, and auditable **Emergency SOS Workflow & Emergency Contact Management** system for Dearly (*Care that stays close.*). The module enables elderly users to quickly alert their authorized Care Circle when assistance is required, while providing caregivers and family members with immediate visibility, response coordination, and transition audit history.
 
 Key capabilities delivered:
-1. **Health Records Dashboard**: Dedicated 5-tab interface (Health Summary & Latest Vitals, Health Trends & Charts, Record History & Audit, Record New Measurement, Wellbeing Observations) with explicit medical disclaimers and helpful empty states.
-2. **Comprehensive Measurements Support**: Full clinical support for:
-   - **Blood Pressure**: Systolic & Diastolic (`mmHg`), context, and reference range comparison.
-   - **Blood Sugar**: Numeric value, unit (`mg/dL` or `mmol/L`), context (`fasting`, `before_meal`, `after_meal`, `random`).
-   - **Weight**: Numeric value, unit (`kg` or `lb`), context.
-   - **Heart Rate**: Numeric value (`bpm`).
-   - **Oxygen Saturation (SpO2)**: Numeric value (`%`).
-   - **Body Temperature**: Numeric value, unit (`°C` or `°F`).
-3. **Clinical Boundary Validation**: Strict validation rejecting physically impossible values (non-numeric, negative values, diastolic >= systolic), while allowing legitimate edge readings with neutral clinical notices.
-4. **Informational Reference Ranges**: Neutral evaluation labels (`Within standard reference range`, `Outside standard reference range`) with standard disclaimers advising users to consult a doctor. Strictly non-diagnostic; zero overall risk scores or treatment alterations.
-5. **Plotly Health Trends**: Interactive, high-contrast trend charts for Systolic/Diastolic BP, Blood Sugar, Weight, Heart Rate, and SpO2 with target reference zones and informative handling for single readings.
-6. **Immutable Audit Trail for Record Corrections**: Authorized users can correct miskeyed readings while preserving previous values, actor ID, and correction reason in `health_record_audit`.
-7. **Care Circle Role-Based Access Control**: Seniors and editor caregivers can log and correct readings; family members have full read-only observability. Cross-patient tampering is blocked.
-8. **Doctor Appointment Integration**: Allows linking health readings and post-visit observations directly to scheduled doctor consultations.
-9. **CSV Export**: Permission-checked, RFC-compliant CSV export for patient records.
-10. **100% Test Coverage**: 22 of 22 mandatory Phase 7 test scenarios passing; 120 of 120 total tests passing across all project test suites with 0 errors and 0 failures.
+1. **Emergency SOS Dashboard**: Dedicated view across all user roles:
+   - Senior: Rapid two-step SOS activation, Indian emergency helpline directory, and emergency contacts list.
+   - Caregiver & Family: Active emergency alert banners, response coordination controls, and historical timeline.
+2. **Mandatory Safety Disclaimer**: Prominently displayed across all emergency interfaces:
+   > *"Dearly SOS sends in-app alerts to your authorized care circle. It does not guarantee that someone will receive or respond to an alert. For immediate danger or a medical emergency in India, call 112 or your local emergency service directly."*
+3. **Official Indian Emergency Helplines**: Quick-reference cards for:
+   - **112**: All-in-One National Emergency Helpline
+   - **108 / 102**: Ambulance & Emergency Medical Services
+   - **100**: Police Assistance
+   - **14567**: Elderline (National Helpline for Senior Citizens)
+4. **Accessible Two-Step Activation Workflow**:
+   - High-contrast, large-target SOS trigger button (elderly-friendly design system).
+   - Two-step confirmation dialog requiring deliberate user confirmation to eliminate accidental activations.
+   - Optional user notes (e.g., room/address or specific situation) without fabricated GPS or misleading tracking claims.
+5. **Duplicate Activation Prevention**: Guard condition preventing duplicate requests while an active emergency (`pending`, `acknowledged`, `assistance_in_progress`) is currently open for that senior.
+6. **Active Care Circle Notification Dispatch**: Automatically routes in-app notifications to all active members of the senior's Care Circle. Revoked, pending, or inactive members receive zero alerts.
+7. **Complete Lifecycle & Response Coordination**:
+   - `pending`: Newly activated, awaiting caregiver acknowledgment.
+   - `acknowledged`: Caregiver has acknowledged and is responding.
+   - `assistance_in_progress`: Caregiver is actively providing assistance or en route.
+   - `resolved`: Emergency situation safely resolved with mandatory resolution notes.
+   - `cancelled`: Senior or authorized caregiver cancelled the false alert with cancellation reason.
+8. **Emergency Status History Audit Trail**: Every status transition records `request_id`, `elderly_user_id`, `actor_user_id`, `from_status`, `to_status`, `response_note`, and timestamp in `emergency_status_history`.
+9. **Emergency Contacts Management**: Complete CRUD supporting contact name, relationship, validated phone number (>= 7 digits), email, and priority ordering with a single-primary-contact rule.
+10. **100% Test Coverage**: 20 of 20 mandatory Phase 8 test scenarios passing; 140 of 140 total tests passing across all project test suites with 0 errors and 0 failures. Zero emojis across all code, tests, and documentation.
 
 ---
 
-## 2. Completed in Phase 7
+## 2. Completed in Phase 8
 
-### A. Health Record Dashboard
-- Dedicated section across all user roles:
-  - Elderly: "My Health" / "Health Records"
-  - Caregiver: "Health Records"
-  - Family: "Health Summary" / "Health Records"
-- Multi-column vital cards showing latest values, units, context, timestamps, and reference status badges.
-- Informational guide expander detailing standard adult clinical reference guidelines.
+### A. Emergency SOS Dashboard
+- Added `"Emergency SOS"` navigation tab to Elderly, Caregiver, and Family views.
+- Top banner alert dynamically surfaces active emergencies across pages (`[ACTIVE ALERT]` in navigation and prominent alert banner in dashboard).
+- Accessible 3-tab layout:
+  - Tab 1: **Activate Emergency SOS** (Senior trigger with confirmation dialog, active emergency status card with response notes, Indian helpline directory).
+  - Tab 2: **Emergency Contacts Directory** (Priority-ranked contacts, primary contact badge, add/edit/delete modal forms).
+  - Tab 3: **Emergency Assistance History** (Chronological history of requests with expandable audit trail).
 
-### B. Health Measurements & Form Validation
-- Standard measurement types supported: Blood Pressure, Blood Sugar, Weight, Heart Rate, Oxygen Saturation (SpO2), Body Temperature.
-- Validates formats, positive numbers, and units.
-- Non-diagnostic neutral warning dispatched when readings exceed reference thresholds.
+### B. SOS Activation Workflow
+- Function `activate_emergency_sos(elderly_user_id, triggered_by_user_id, location_notes, urgency_reason)`:
+  - Verifies elderly user existence and access permissions.
+  - Prevents duplicate activation if an active emergency exists.
+  - Creates record in `emergency_requests`.
+  - Logs initial transition in `emergency_status_history`.
+  - Dispatches notifications to all active Care Circle members (`status = 'active'`).
+  - Logs structured activity log event.
 
-### C. Health Trends & Plotly Visualizations
-- Separate charts with chronological x-axis, units, and reference bands.
-- Informational notice when insufficient history (< 2 readings) is available.
-- Zero fabrication of data points.
+### C. Emergency Contact Management
+- Validations:
+  - Name required (>= 2 characters).
+  - Phone required (digits only after stripping formatting, minimum 7 digits).
+  - Relationship required.
+- Single Primary Rule: Setting any contact as primary automatically clears the primary status of all other contacts for that senior.
+- Role Permissions: Seniors and editor caregivers can add, update, delete, and set primary contacts. Family members have read-only visibility.
 
-### D. Qualitative Wellbeing Observations
-- Categorized observation logging (`general`, `energy_sleep`, `appetite_diet`, `mobility`, `mood_wellbeing`, `post_visit`).
-- Chronological observation feed with actor attribution and date/time stamps.
-
-### E. Record Correction with Audit Trail
-- Non-destructive updates: original values saved to `health_record_audit` before record modification.
-- UI expander displaying audit history for any corrected measurement.
-
-### F. CSV Health Export
-- Generates structured CSV with headers: Record ID, Patient Name, Date, Time, Measurement Type, Reading Value, Unit, Context, Recorded By, Status / Range, Notes, Corrected, Correction Reason.
-
----
-
-## 3. Database Schema Modifications
-
-Database file: [data/dearly.db](file:///d:/Dearly/data/dearly.db)
-Added tables, columns, and indexes in [database.py](file:///d:/Dearly/database.py):
-
-### Table: `health_readings` (Migrated & Enhanced)
-- Added `systolic INTEGER`
-- Added `diastolic INTEGER`
-- Added `numeric_value REAL`
-- Added `unit TEXT DEFAULT ''`
-- Added `context TEXT DEFAULT ''`
-- Added `recorded_time TEXT DEFAULT ''`
-- Added `recorded_by INTEGER`
-- Added `appointment_id INTEGER`
-- Added `is_corrected INTEGER DEFAULT 0`
-- Added `corrected_at TEXT`
-- Added `corrected_by INTEGER`
-- Added `correction_notes TEXT`
-- Added `updated_at TEXT`
-- Index: `idx_health_readings_elderly` on `(elderly_user_id, recorded_on)`
-
-### Table: `health_observations`
-```sql
-CREATE TABLE IF NOT EXISTS health_observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    elderly_user_id INTEGER NOT NULL,
-    observation_text TEXT NOT NULL,
-    category TEXT DEFAULT 'general',
-    recorded_on TEXT NOT NULL,
-    recorded_time TEXT DEFAULT '',
-    appointment_id INTEGER,
-    recorded_by INTEGER NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT,
-    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
-    FOREIGN KEY(recorded_by) REFERENCES users(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_health_obs_elderly ON health_observations(elderly_user_id, recorded_on);
-```
-
-### Table: `health_record_audit`
-```sql
-CREATE TABLE IF NOT EXISTS health_record_audit (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reading_id INTEGER NOT NULL,
-    elderly_user_id INTEGER NOT NULL,
-    changed_by INTEGER NOT NULL,
-    old_reading_type TEXT,
-    old_reading_value TEXT,
-    old_unit TEXT,
-    new_reading_type TEXT,
-    new_reading_value TEXT,
-    new_unit TEXT,
-    reason_for_change TEXT NOT NULL,
-    changed_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(reading_id) REFERENCES health_readings(id) ON DELETE CASCADE,
-    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(changed_by) REFERENCES users(id) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_health_audit_reading ON health_record_audit(reading_id);
-```
-
----
-
-## 4. Test Evidence
-
-Executed 22-scenario Phase 7 test suite in [test_phase7_health.py](file:///d:/Dearly/test_phase7_health.py) and full regression suite across all 120 tests:
-```powershell
-python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py
-........................................................................................................................
-Ran 120 tests in 49.023s — OK
-```
-
-| Test Case | Scenario Tested | Result |
-|---|---|---|
-| `test_01` | Record a valid blood pressure reading | Passed |
-| `test_02` | Record a valid blood sugar reading with context and unit | Passed |
-| `test_03` | Record a weight measurement | Passed |
-| `test_04` | Record heart rate, SpO2, and body temperature | Passed |
-| `test_05` | Reject invalid measurement formats (negative, non-numeric, diastolic >= systolic) | Passed |
-| `test_06` | Validate units and reject invalid units for measurement types | Passed |
-| `test_07` | Record qualitative health observations with categories | Passed |
-| `test_08` | Display latest vitals for each measurement type | Passed |
-| `test_09` | Display chronological history in descending date/time order | Passed |
-| `test_10` | Filter records by measurement type and date range | Passed |
-| `test_11` | Generate Plotly charts using real database measurements | Passed |
-| `test_12` | Handle insufficient chart data gracefully | Passed |
-| `test_13` | Correct a health record while preserving full audit history | Passed |
-| `test_14` | Export filtered health records to CSV with valid format | Passed |
-| `test_15` | Authorized editor caregiver can record and correct readings | Passed |
-| `test_16` | Family members have read-only access; write operations are rejected | Passed |
-| `test_17` | Prevent access to unrelated elderly profiles (cross-ward protection) | Passed |
-| `test_18` | Verify health records and audit trails persist across database restart | Passed |
-| `test_19` | Verify existing medication management features continue working | Passed |
-| `test_20` | Verify existing reminder and escalation engine continues working | Passed |
-| `test_21` | Verify Care Circle membership and care notes remain functional | Passed |
-| `test_22` | Verify appointment scheduling, rescheduling, and reminders remain functional | Passed |
-
----
-
-## 5. Files Created & Modified in Phase 7
-
-### Created:
-1. **[views/health_view.py](file:///d:/Dearly/views/health_view.py)**: Dedicated 5-tab Health Records & Monitoring view (Summary & Latest Vitals, Trends & Charts, Record History & Audit, Log Measurement, Wellbeing Observations).
-2. **[test_phase7_health.py](file:///d:/Dearly/test_phase7_health.py)**: Mandatory 22-scenario automated test suite.
-
-### Modified:
-1. **[database.py](file:///d:/Dearly/database.py)**: Added `health_observations` and `health_record_audit` tables; added column migrations and backfill for `health_readings`.
-2. **[services/health_service.py](file:///d:/Dearly/services/health_service.py)**: Implemented complete health measurement CRUD, clinical boundary validation, informational reference range evaluation, audit tracking, Plotly trend generation, and CSV export.
-3. **[services/permissions.py](file:///d:/Dearly/services/permissions.py)**: Added `can_view_health_records` and `can_manage_health_records` RBAC helpers.
-4. **[app.py](file:///d:/Dearly/app.py)**: Connected `render_health_view` to routes (`"Health Records"`, `"My Health"`, `"Health Summary"`).
-5. **[views/caregiver_view.py](file:///d:/Dearly/views/caregiver_view.py)**: Delegated Health Records to `render_health_view`.
-6. **[views/elderly_view.py](file:///d:/Dearly/views/elderly_view.py)**: Delegated My Health to `render_health_view`.
-7. **[views/family_view.py](file:///d:/Dearly/views/family_view.py)**: Delegated Health Summary to `render_health_view`.
-8. **[views/appointment_view.py](file:///d:/Dearly/views/appointment_view.py)**: Integrated health vitals review and post-visit observation logging.
-9. **[PROJECT_STATUS.md](file:///d:/Dearly/PROJECT_STATUS.md)**: Updated Phase 7 status report.
-10. **[FEATURE_CHECKLIST.md](file:///d:/Dearly/FEATURE_CHECKLIST.md)**: Verified requirement checklist.
-11. **[EVALUATION_MAPPING.md](file:///d:/Dearly/EVALUATION_MAPPING.md)**: Added jury evaluation steps for Health Monitoring.
-12. **[README.md](file:///d:/Dearly/README.md)**: Updated architecture and test instructions.
-
----
-
-## 6. Known Limitations & Strict Scope
-
-- **Non-Diagnostic**: Health readings and reference ranges are strictly for personal tracking and care coordination. Dearly never provides medical diagnoses, automated dosage changes, or treatment advice.
-- **No Wearable APIs**: In-person digital thermometer, blood pressure cuff, and pulse oximeter readings are recorded manually; Bluetooth / proprietary wearable streams are out of scope.
-- **No Automated External Transmission**: Health records are not automatically transmitted to doctors or external hospital networks.
-
----
-
-## 7. Roadmap & Next Phase
-
-- [x] Phase 1: Professional UI/UX Foundation & Accessible Role Shell
-- [x] Phase 2: Authentication, Multi-Role Registration & RBAC
-- [x] Phase 3: Medication Management, Dose Tracking & Adherence
-- [x] Phase 4: Smart Medication Reminder & Alert System
-- [x] Phase 5: Family & Caregiver Circle
-- [x] Phase 6: Doctor Appointment Scheduling & Coordination
-- [x] Phase 7: Health Vitals & Clinical Readings (Blood Pressure, Glucose, SpO2, Heart Rate)
-- [ ] Phase 8: Emergency SOS Workflow & Verification
-
-- Prevented duplicate alerts via `appointment_reminders` unique constraints.
-
-### E. Calendar View & Historical Archive
-- Date-grouped agenda view showing upcoming visits by date.
-- Complete historical record of all completed, cancelled, and missed visits with clinical summaries.
+### D. Response Coordination & Status Lifecycle
+- `acknowledge_emergency`: Moves status to `acknowledged` with optional response notes; dispatches notifications to senior and other circle members.
+- `update_assistance_status`: Moves status to `assistance_in_progress` with progress updates.
+- `resolve_emergency`: Moves status to `resolved` with resolution summary; clears active status.
+- `cancel_emergency`: Moves status to `cancelled` with cancellation reason.
+- Immutable transition audit trail maintained in `emergency_status_history`.
 
 ---
 
 ## 3. Database Schema Modifications
 
-Database file: [data/dearly.db](file:///d:/Dearly/data/dearly.db)
-Added tables, columns, and indexes in [database.py](file:///d:/Dearly/database.py):
+Database file: [data/dearly.db](file:///d:/Dearly/data/dearly.db)  
+Added tables and indexes in [database.py](file:///d:/Dearly/database.py):
 
-### Table: `appointments` (Migrated)
+### Table: `emergency_contacts`
 ```sql
-CREATE TABLE IF NOT EXISTS appointments (
+CREATE TABLE IF NOT EXISTS emergency_contacts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     elderly_user_id INTEGER NOT NULL,
-    doctor_name TEXT NOT NULL,
-    specialization TEXT DEFAULT '',
-    hospital TEXT NOT NULL,
-    appointment_date TEXT NOT NULL,
-    appointment_time TEXT NOT NULL,
-    appointment_type TEXT DEFAULT 'General check-up',
-    location TEXT DEFAULT '',
-    reason TEXT DEFAULT '',
-    purpose TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    relationship TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT DEFAULT '',
+    is_primary INTEGER DEFAULT 0,
+    priority_order INTEGER DEFAULT 1,
     notes TEXT DEFAULT '',
-    post_visit_notes TEXT DEFAULT '',
-    status TEXT DEFAULT 'upcoming' CHECK(status IN ('upcoming', 'completed', 'cancelled', 'missed')),
-    reminder_sent INTEGER DEFAULT 0,
-    created_by INTEGER,
-    updated_by INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_emergency_contacts_elderly ON emergency_contacts(elderly_user_id, is_primary);
+```
+
+### Table: `emergency_requests`
+```sql
+CREATE TABLE IF NOT EXISTS emergency_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    elderly_user_id INTEGER NOT NULL,
+    triggered_by_user_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'acknowledged', 'assistance_in_progress', 'resolved', 'cancelled')),
+    location_notes TEXT DEFAULT '',
+    urgency_reason TEXT DEFAULT '',
+    acknowledged_by INTEGER,
+    acknowledged_at TEXT,
+    resolved_by INTEGER,
+    resolved_at TEXT,
+    resolution_notes TEXT DEFAULT '',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT,
     FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY(updated_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY(triggered_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY(acknowledged_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY(resolved_by) REFERENCES users(id) ON DELETE SET NULL
 );
-CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date);
-CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(elderly_user_id, status);
+CREATE INDEX IF NOT EXISTS idx_emergency_requests_elderly ON emergency_requests(elderly_user_id, status);
+CREATE INDEX IF NOT EXISTS idx_emergency_requests_created ON emergency_requests(created_at);
 ```
 
-### Table: `appointment_reminders`
+### Table: `emergency_status_history`
 ```sql
-CREATE TABLE IF NOT EXISTS appointment_reminders (
+CREATE TABLE IF NOT EXISTS emergency_status_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    appointment_id INTEGER NOT NULL,
+    request_id INTEGER NOT NULL,
     elderly_user_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    reminder_type TEXT NOT NULL CHECK(reminder_type IN ('1_day_before', '1_hour_before')),
-    scheduled_for TEXT NOT NULL,
-    is_sent INTEGER DEFAULT 0,
-    sent_at TEXT,
-    FOREIGN KEY(appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    actor_user_id INTEGER NOT NULL,
+    from_status TEXT NOT NULL,
+    to_status TEXT NOT NULL,
+    response_note TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(request_id) REFERENCES emergency_requests(id) ON DELETE CASCADE,
     FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(appointment_id, user_id, reminder_type)
+    FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_appt_reminders_user ON appointment_reminders(user_id, is_sent);
-CREATE INDEX IF NOT EXISTS idx_appt_reminders_appt ON appointment_reminders(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_emergency_history_req ON emergency_status_history(request_id, created_at);
 ```
 
 ---
 
 ## 4. Test Evidence
 
-Executed 21-scenario Phase 6 test suite in [test_phase6_appts.py](file:///d:/Dearly/test_phase6_appts.py) and full regression suite across all 98 tests:
+Executed 20-scenario Phase 8 test suite in [test_phase8_emergency.py](file:///d:/Dearly/test_phase8_emergency.py) and full regression suite across all 140 tests:
 ```powershell
-python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py
-..................................................................................................
-Ran 98 tests in 36.263s — OK
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py
+............................................................................................................................................
+Ran 140 tests in 13.471s — OK
 ```
 
 | Test Case | Scenario Tested | Result |
 |---|---|---|
-| `test_01` | Create appointment with all required fields | Passed |
-| `test_02` | Validate doctor name length (min 2 chars) | Passed |
-| `test_03` | Validate hospital / clinic name (min 2 chars) | Passed |
-| `test_04` | Validate appointment date format (YYYY-MM-DD) | Passed |
-| `test_05` | Prevent past appointment date creation | Passed |
-| `test_06` | Validate appointment time format | Passed |
-| `test_07` | Support all appointment types | Passed |
-| `test_08` | Retrieve appointments by elderly user id | Passed |
-| `test_09` | Filter appointments by status (upcoming vs completed) | Passed |
-| `test_10` | Filter appointments by date range | Passed |
-| `test_11` | Filter appointments by doctor keyword search | Passed |
-| `test_12` | Retrieve single appointment details with creator metadata | Passed |
-| `test_13` | Edit appointment details & verify persistence | Passed |
-| `test_14` | Reschedule appointment to future date and time | Passed |
-| `test_15` | Cancel appointment with confirmation and reason | Passed |
-| `test_16` | Mark appointment completed with post-visit notes | Passed |
-| `test_17` | Generate 1-day-before and 1-hour-before in-app reminders | Passed |
-| `test_18` | Prevent duplicate appointment reminders via unique constraints | Passed |
-| `test_19` | Zero reminders generated for cancelled or completed appointments | Passed |
-| `test_20` | Family members have read-only access and cannot edit appointments | Passed |
-| `test_21` | Calendar view groups appointments by date and displays past history | Passed |
+| `test_01` | Elderly user can access SOS dashboard and contacts list | Passed |
+| `test_02` | Elderly user can activate an SOS request | Passed |
+| `test_03` | Safety disclaimer is displayed on SOS trigger interface | Passed |
+| `test_04` | Duplicate emergency activation is prevented when active request exists | Passed |
+| `test_05` | Active caregivers receive in-app notifications on SOS activation | Passed |
+| `test_06` | Revoked or inactive care circle members receive zero notifications | Passed |
+| `test_07` | Authorized family members receive permitted in-app notifications | Passed |
+| `test_08` | Active emergency banner is visible across dashboards | Passed |
+| `test_09` | Caregiver can acknowledge an active emergency | Passed |
+| `test_10` | Caregiver can update assistance status to 'assistance_in_progress' | Passed |
+| `test_11` | Authorized user can resolve emergency with resolution notes | Passed |
+| `test_12` | Status transition history is recorded completely in `emergency_status_history` | Passed |
+| `test_13` | Add emergency contact with validated phone and fields | Passed |
+| `test_14` | Setting a new primary contact updates existing primary to non-primary | Passed |
+| `test_15` | Caregiver with editor permissions can manage emergency contacts | Passed |
+| `test_16` | Family member has read-only access to emergency contacts | Passed |
+| `test_17` | Prevent access to emergency details for unrelated elderly profiles | Passed |
+| `test_18` | Emergency history and status logs persist across application restart | Passed |
+| `test_19` | Optional location notes can be included without fabricated GPS | Passed |
+| `test_20` | Full regression verification (medications, reminders, appointments, vitals) | Passed |
 
 ---
 
-## 5. Files Created & Modified in Phase 6
+## 5. Files Created & Modified in Phase 8
 
 ### Created:
-1. **[views/appointment_view.py](file:///d:/Dearly/views/appointment_view.py)**: Dedicated 4-tab Doctor Appointments dashboard (Upcoming Visits, Calendar & Date View, Schedule New Visit, Visit History & Summaries).
-2. **[test_phase6_appts.py](file:///d:/Dearly/test_phase6_appts.py)**: Mandatory 21-scenario automated test suite.
+1. **[views/emergency_view.py](file:///d:/Dearly/views/emergency_view.py)**: Dedicated 3-tab Emergency SOS view (Activate SOS, Emergency Contacts Directory, Emergency History & Audit).
+2. **[test_phase8_emergency.py](file:///d:/Dearly/test_phase8_emergency.py)**: Mandatory 20-scenario automated test suite.
 
 ### Modified:
-1. **[database.py](file:///d:/Dearly/database.py)**: Migrated `appointments` schema to support `status` check, `specialization`, `appointment_type`, `location`, `reason`, `post_visit_notes`, `created_by`, `updated_by`, `updated_at`; added `appointment_reminders` table and indexes.
-2. **[services/appointment_service.py](file:///d:/Dearly/services/appointment_service.py)**: Comprehensive appointment service with validation, CRUD, reschedule, cancel, complete, calendar grouping, history, legacy wrappers, and dual reminder generation.
-3. **[app.py](file:///d:/Dearly/app.py)**: Connected `render_appointment_view`, routed `"Appointments"` page across all roles, and hooked `sync_appointment_reminders()` on application load.
-4. **[PROJECT_STATUS.md](file:///d:/Dearly/PROJECT_STATUS.md)**: Updated Phase 6 status report.
-5. **[FEATURE_CHECKLIST.md](file:///d:/Dearly/FEATURE_CHECKLIST.md)**: Verified requirement checklist.
-6. **[EVALUATION_MAPPING.md](file:///d:/Dearly/EVALUATION_MAPPING.md)**: Added jury evaluation steps for Doctor Appointments.
-7. **[README.md](file:///d:/Dearly/README.md)**: Updated architecture and test instructions.
+1. **[database.py](file:///d:/Dearly/database.py)**: Added `emergency_contacts`, `emergency_requests`, and `emergency_status_history` tables with indexes; seeded initial demo emergency contacts for Asha Patil.
+2. **[services/emergency_service.py](file:///d:/Dearly/services/emergency_service.py)**: Complete emergency service implementation (contact CRUD, SOS activation, duplicate guard, circle notification routing, status lifecycle, history tracking, backward-compatible wrappers).
+3. **[services/permissions.py](file:///d:/Dearly/services/permissions.py)**: Added `can_view_emergency` and `can_manage_emergency` RBAC helpers; added `"Emergency SOS"` to permitted pages.
+4. **[app.py](file:///d:/Dearly/app.py)**: Connected `render_emergency_view`, routed `"Emergency SOS"` and `"Emergency Contacts"` across all roles, and added dynamic navigation active alert badge (`[ACTIVE ALERT]`).
+5. **[views/elderly_view.py](file:///d:/Dearly/views/elderly_view.py)**: Connected Emergency Contacts and SOS view.
+6. **[PROJECT_STATUS.md](file:///d:/Dearly/PROJECT_STATUS.md)**: Updated Phase 8 status report.
+7. **[FEATURE_CHECKLIST.md](file:///d:/Dearly/FEATURE_CHECKLIST.md)**: Verified requirement checklist.
+8. **[EVALUATION_MAPPING.md](file:///d:/Dearly/EVALUATION_MAPPING.md)**: Added jury evaluation steps for Emergency SOS.
+9. **[README.md](file:///d:/Dearly/README.md)**: Updated architecture and test instructions.
 
 ---
 
 ## 6. Known Limitations & Strict Scope
 
-- **In-App Alerts Only**: Appointment reminders and reschedule notices operate within the application. No external SMS/WhatsApp/push delivery is claimed.
-- **No Direct Telemedicine / Video Streams**: In-person clinic and hospital visits are tracked; external video call integration is intentionally out of scope.
-- **Non-Diagnostic**: Doctor summaries and visit notes are user-recorded logs of physician visits, not automated AI diagnostic decisions.
+- **In-App Alerts Only**: Emergency notifications operate strictly within the application session and notifications table. No SMS, WhatsApp, phone call, or push delivery is claimed or simulated as real.
+- **No Direct Dispatch**: Dearly does not automatically dispatch ambulances or police. Users are directed to call 112, 108, or 100 directly.
+- **No Fabricated GPS**: Only explicit user-entered location notes (such as room or address details) are recorded; no simulated GPS tracking coordinates are generated.
+- **Non-Diagnostic**: Emergency workflows handle communication and coordination only; zero automated medical diagnosis or triage is performed.
 
 ---
 
@@ -339,6 +215,6 @@ Ran 98 tests in 36.263s — OK
 - [x] Phase 4: Smart Medication Reminder & Alert System
 - [x] Phase 5: Family & Caregiver Circle
 - [x] Phase 6: Doctor Appointment Scheduling & Coordination
-- [ ] Phase 7: Health Vitals & Clinical Readings (BP, Glucose, SpO2)
-- [ ] Phase 8: Emergency SOS Workflow & Verification
-
+- [x] Phase 7: Health Vitals & Clinical Readings (BP, Glucose, SpO2)
+- [x] Phase 8: Emergency SOS Workflow & Verification
+- [ ] Phase 9: AI Care Assistant & Daily Briefings (Pending Approval)

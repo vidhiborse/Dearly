@@ -58,6 +58,7 @@ dearly/
 ├── FEATURE_CHECKLIST.md        # Line-by-line verification checklist against requirements
 ├── EVALUATION_MAPPING.md       # Hackathon jury evaluation mapping & test execution guide
 ├── README.md                   # Product architecture, instructions, and engineering guide
+├── test_phase8_emergency.py    # Phase 8 Emergency SOS & Contacts test suite (20 tests)
 ├── test_phase7_health.py       # Phase 7 Health Monitoring & Records test suite (22 tests)
 ├── test_phase6_appts.py        # Phase 6 Doctor Appointments test suite (21 tests)
 ├── test_phase5_circle.py       # Phase 5 Family & Caregiver Circle test suite (20 tests)
@@ -80,7 +81,7 @@ dearly/
 │   ├── appointment_service.py  # Doctor appointment management, scheduling, reminders, and history
 │   ├── health_service.py       # Health vitals logging, clinical validation, audit trails, charts & CSV export
 │   ├── activity_service.py     # Immutable audit trail, activity timeline & category filtering
-│   ├── emergency_service.py    # Emergency SOS alert dispatch, acknowledgment, and notifications
+│   ├── emergency_service.py    # Emergency SOS activation, duplicate guard, contact CRUD & status lifecycle
 │   └── summary_service.py      # Algorithmic daily care briefing with strict safety guardrails
 │
 └── views/                      # Accessible Streamlit Presentation Layer
@@ -91,6 +92,7 @@ dearly/
     ├── care_circle_view.py     # Care circle network, invitations, primary caregiver & notes
     ├── appointment_view.py     # Accessible doctor appointments dashboard, calendar & history
     ├── health_view.py          # Accessible health records, multi-vital trend charts & audit trail
+    ├── emergency_view.py       # Accessible Emergency SOS trigger, helplines, contact CRUD & status history
     ├── notification_view.py    # In-App Notification Center, reminder stream & escalation management
     ├── elderly_view.py         # High-contrast, large-button, accessible elderly interface
     ├── caregiver_view.py       # Care coordination, missed-dose escalation, medication & vitals CRUD
@@ -115,8 +117,12 @@ All database interactions use parameterized SQL statements to prevent injection 
 10. **`care_notes`**: Everyday observational and routine care notes with privacy visibility controls (`circle` vs `caregivers_only`).
 11. **`appointments`**: Doctor visits, hospital/clinic details, appointment timestamps, and statuses.
 12. **`health_readings`**: Vital observations (Blood Pressure, Blood Sugar, Heart Rate, SpO2, Weight).
-13. **`activity_logs`**: Immutable audit logs capturing every dose confirmation, profile change, invitation, and note.
-14. **`emergency_alerts`**: Log of triggered SOS emergency requests with active/acknowledged lifecycle.
+13. **`health_observations`**: Categorized qualitative wellbeing observations and doctor visit linkages.
+14. **`health_record_audit`**: Immutable change tracking for corrected health readings.
+15. **`emergency_contacts`**: Validated phone contacts with priority ordering and single primary contact rule.
+16. **`emergency_requests`**: Emergency SOS activations, duplicate guards, location notes, and response lifecycle.
+17. **`emergency_status_history`**: Complete chronological transition audit trail (`pending`, `acknowledged`, `assistance_in_progress`, `resolved`, `cancelled`).
+18. **`activity_logs`**: Immutable audit logs capturing every dose confirmation, profile change, invitation, and note.
 
 ---
 
@@ -146,8 +152,8 @@ pip install -r requirements.txt
 
 ### 4. Run the test suite
 ```bash
-# Run all automated tests (77 tests across Auth, RBAC, Medications, Reminders, and Care Circle)
-python -m unittest test_phase2_auth.py test_app.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py
+# Run all 140 automated tests across all 8 phases
+python -m unittest test_app.py test_phase2_auth.py test_phase3_meds.py test_phase4_reminders.py test_phase5_circle.py test_phase6_appts.py test_phase7_health.py test_phase8_emergency.py
 ```
 
 ### 5. Launch Dearly

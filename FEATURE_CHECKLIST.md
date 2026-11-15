@@ -133,3 +133,24 @@
 | Existing Care Circle regression verification | `test_phase5_circle.py`, `test_phase7_health.py` | Complete | Verified in `test_phase7_health.py` (`test_21`). |
 | Existing Doctor Appointment regression verification | `test_phase6_appts.py`, `test_phase7_health.py` | Complete | Verified in `test_phase7_health.py` (`test_22`). |
 | Full regression verification across all 120 tests | All test suites | Complete | 120/120 tests passing in 49.0s. |
+| **Phase 8: Emergency SOS Workflow & Verification** | | | |
+| Elderly user access to SOS dashboard & contacts list | `views/emergency_view.py`, `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_01`). |
+| Elderly SOS activation with two-step confirmation | `services/emergency_service.py`, `views/emergency_view.py` | Complete | Verified in `test_phase8_emergency.py` (`test_02`). |
+| Prominent safety disclaimer & emergency notice | `services/emergency_service.py`, `views/emergency_view.py` | Complete | Verified in `test_phase8_emergency.py` (`test_03`). |
+| Duplicate activation prevention when active alert exists | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_04`). |
+| In-app notification routing to active caregivers | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_05`). |
+| Revoked/inactive circle members receive zero alerts | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_06`). |
+| In-app notification routing to authorized family members | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_07`). |
+| Dynamic active emergency banner across dashboard | `app.py`, `views/emergency_view.py` | Complete | Verified in `test_phase8_emergency.py` (`test_08`). |
+| Caregiver acknowledgment with response notes | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_09`). |
+| Assistance status update ('assistance_in_progress') | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_10`). |
+| Emergency resolution with mandatory resolution notes | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_11`). |
+| Complete status history in `emergency_status_history` | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_12`). |
+| Emergency contact CRUD with phone & input validation | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_13`). |
+| Single primary contact rule enforcement | `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_14`). |
+| Caregiver editor management of emergency contacts | `services/permissions.py`, `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_15`). |
+| Family member read-only observation of emergency contacts | `services/permissions.py`, `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_16`). |
+| Cross-patient profile isolation for emergency details | `services/permissions.py`, `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_17`). |
+| Emergency requests and history persist across restart | `database.py`, `services/emergency_service.py` | Complete | Verified in `test_phase8_emergency.py` (`test_18`). |
+| Optional location notes support without fake GPS | `services/emergency_service.py`, `views/emergency_view.py` | Complete | Verified in `test_phase8_emergency.py` (`test_19`). |
+| Complete regression verification across all 140 tests | All test suites | Complete | 140/140 tests passing in 13.5s. |

@@ -10,11 +10,13 @@ from views.notification_view import render_notification_view
 from views.care_circle_view import render_care_circle_view
 from views.appointment_view import render_appointment_view
 from views.health_view import render_health_view
+from views.emergency_view import render_emergency_view
 from services.permissions import can_view_page
 from services.reminder_service import sync_reminders_and_escalations, get_unread_notification_count
 from services.appointment_service import sync_appointment_reminders
 from services.care_circle_service import get_user_pending_invitations
 from services.auth_service import get_accessible_elderly_wards
+from services.emergency_service import get_active_emergency
 
 # Initialize database schema and demo data
 init_db()
@@ -77,10 +79,10 @@ if st.session_state.user:
         nav_options = ["Home", "My Medicines", "Reminders & Alerts", "Care Circle", "Appointments", "My Health", "Emergency Contacts", "My Profile"]
         default_page = "Home"
     elif role == "caregiver":
-        nav_options = ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Activity History", "My Profile"]
+        nav_options = ["Overview", "Reminders & Alerts", "Elderly Profiles", "Care Circle", "Medication Monitoring", "Appointments", "Health Records", "Emergency SOS", "Activity History", "My Profile"]
         default_page = "Overview"
     elif role == "family":
-        nav_options = ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "My Profile"]
+        nav_options = ["Overview", "Reminders & Alerts", "Care Circle", "Care Updates", "Medicines", "Appointments", "Health Summary", "Emergency SOS", "My Profile"]
         default_page = "Overview"
     else:
         nav_options = ["Home", "My Profile"]
@@ -90,11 +92,15 @@ if st.session_state.user:
     if st.session_state.current_page not in nav_options:
         st.session_state.current_page = default_page
 
+    active_alert = get_active_emergency(primary_ward_id) if primary_ward_id else None
+
     def format_nav_item(opt_name: str) -> str:
         if opt_name == "Reminders & Alerts" and unread_notifs > 0:
             return f"Reminders & Alerts [{unread_notifs} new]"
         elif opt_name == "Care Circle" and my_invites_count > 0:
             return f"Care Circle [{my_invites_count} new]"
+        elif opt_name in ("Emergency Contacts", "Emergency SOS") and active_alert:
+            return f"{opt_name} [ACTIVE ALERT]"
         return opt_name
 
     selected_page = st.sidebar.radio(
@@ -152,6 +158,8 @@ if st.session_state.user:
         render_appointment_view(user)
     elif selected_page in ("Health Records", "My Health", "Health Summary"):
         render_health_view(user, page=selected_page)
+    elif selected_page in ("Emergency SOS", "Emergency Contacts"):
+        render_emergency_view(user)
     elif role == "elderly":
         render_elderly_view(user, page=selected_page)
     elif role == "caregiver":

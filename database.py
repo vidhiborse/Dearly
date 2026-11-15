@@ -309,12 +309,66 @@ def init_db():
             FOREIGN KEY(changed_by) REFERENCES users(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS emergency_contacts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            elderly_user_id INTEGER NOT NULL,
+            contact_name TEXT NOT NULL,
+            relationship TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            email TEXT DEFAULT '',
+            priority INTEGER DEFAULT 1,
+            is_primary INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            notes TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS emergency_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            elderly_user_id INTEGER NOT NULL,
+            triggered_by_user_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'acknowledged', 'assistance_in_progress', 'resolved', 'cancelled')),
+            location_notes TEXT DEFAULT '',
+            urgency_reason TEXT DEFAULT '',
+            acknowledged_by INTEGER,
+            acknowledged_at TEXT,
+            resolved_by INTEGER,
+            resolved_at TEXT,
+            resolution_notes TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(triggered_by_user_id) REFERENCES users(id),
+            FOREIGN KEY(acknowledged_by) REFERENCES users(id),
+            FOREIGN KEY(resolved_by) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS emergency_status_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id INTEGER NOT NULL,
+            elderly_user_id INTEGER NOT NULL,
+            actor_user_id INTEGER NOT NULL,
+            from_status TEXT NOT NULL,
+            to_status TEXT NOT NULL,
+            response_note TEXT DEFAULT '',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(request_id) REFERENCES emergency_requests(id) ON DELETE CASCADE,
+            FOREIGN KEY(elderly_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(actor_user_id) REFERENCES users(id)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_medications_elderly ON medications(elderly_user_id, active);
         CREATE INDEX IF NOT EXISTS idx_medication_logs_lookup ON medication_logs(medication_id, scheduled_date);
         CREATE INDEX IF NOT EXISTS idx_appointments_elderly ON appointments(elderly_user_id, appointment_date);
         CREATE INDEX IF NOT EXISTS idx_health_readings_elderly ON health_readings(elderly_user_id, recorded_on);
         CREATE INDEX IF NOT EXISTS idx_health_obs_elderly ON health_observations(elderly_user_id, recorded_on);
         CREATE INDEX IF NOT EXISTS idx_health_audit_reading ON health_record_audit(reading_id);
+        CREATE INDEX IF NOT EXISTS idx_emergency_contacts_elderly ON emergency_contacts(elderly_user_id, is_active);
+        CREATE INDEX IF NOT EXISTS idx_emergency_requests_elderly ON emergency_requests(elderly_user_id, status);
+        CREATE INDEX IF NOT EXISTS idx_emergency_requests_created ON emergency_requests(created_at);
+        CREATE INDEX IF NOT EXISTS idx_emergency_history_req ON emergency_status_history(request_id);
         CREATE INDEX IF NOT EXISTS idx_activity_logs_elderly ON activity_logs(elderly_user_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
         CREATE INDEX IF NOT EXISTS idx_notifications_elderly ON notifications(elderly_user_id, alert_type);
@@ -643,6 +697,23 @@ def create_demo_users():
                            VALUES (?, 15, 1, 1, '12h')""",
                         (u["id"],),
                     )
+
+            # Seed demo emergency contacts
+            existing_contacts = conn.execute("SELECT COUNT(*) as count FROM emergency_contacts WHERE elderly_user_id = ?", (e_id,)).fetchone()
+            if existing_contacts["count"] == 0:
+                contacts = [
+                    (e_id, "Rahul Patil", "Son (Primary Caregiver)", "+91 98200 12345", "caregiver@dearly.demo", 1, 1, "Primary emergency responder; lives 10 mins away"),
+                    (e_id, "Neha Patil", "Daughter", "+91 98200 54321", "family@dearly.demo", 2, 0, "Secondary emergency contact; accessible via phone"),
+                    (e_id, "Dr. Sunita Kulkarni", "Primary Physician", "+91 98111 22334", "dr.kulkarni@apollo.demo", 3, 0, "Attending cardiologist at Apollo Heart Clinic, Khar"),
+                ]
+                for c in contacts:
+                    conn.execute(
+                        """INSERT INTO emergency_contacts
+                           (elderly_user_id, contact_name, relationship, phone, email, priority, is_primary, notes, is_active)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)""",
+                        c,
+                    )
+
 
 def authenticate_user(email: str, password: str):
     with get_connection() as conn:

@@ -13,6 +13,7 @@ from services.care_circle_service import get_elderly_profile, get_care_circle_me
 from services.emergency_service import trigger_sos_alert, get_active_emergency_alerts
 from views.common import render_clinical_disclaimer
 from views.health_view import render_health_view
+from views.emergency_view import render_emergency_view
 
 def render_elderly_view(user: dict, page: str = "Home"):
     elderly_id = user["id"]
@@ -364,36 +365,7 @@ def render_elderly_view(user: dict, page: str = "Home"):
         render_health_view(user, page="My Health")
 
     # 5. EMERGENCY CONTACTS PAGE
-    elif page == "Emergency Contacts":
-        st.markdown("<h1 style='font-size: 24px; color: #234B70; margin-bottom: 6px;'>Emergency Contacts</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='font-size: 16px; color: #607086; margin-bottom: 18px;'>Authorized contacts and urgent care resources.</p>", unsafe_allow_html=True)
-
-        with st.container(border=True):
-            st.markdown("### Primary Emergency Contact")
-            st.markdown(f"**{profile.get('emergency_contact', 'Rahul Patil: +91 98200 12345')}**")
-            st.caption("Designated primary contact notified in case of health events.")
-
-        st.write("")
-
-        with st.container(border=True):
-            st.markdown("### Primary Physician")
-            st.markdown(f"**{profile.get('primary_physician', 'Dr. Sunita Kulkarni')}**")
-            st.markdown(f"Phone: **{profile.get('primary_physician_phone', '+91 98111 22334')}**")
-            st.caption(f"Allergies on record: {profile.get('allergies', 'Penicillin')}")
-
-        st.write("")
-
-        with st.container(border=True):
-            st.markdown("### Emergency Alert Action")
-            st.markdown("Dispatches an immediate notification to all members of your care circle.")
-            if st.button("DISPATCH EMERGENCY ALERT NOW", key="contacts_sos_btn", type="primary", use_container_width=True):
-                alert_id = trigger_sos_alert(
-                    elderly_user_id=elderly_id,
-                    triggered_by_user_id=elderly_id,
-                    message="Emergency alert dispatched from Emergency Contacts page",
-                )
-                st.error(f"Emergency alert dispatched to Rahul Patil and Neha Patil (Alert #{alert_id}).")
-                st.rerun()
-            st.caption("Notice: For life-threatening emergencies, dial local emergency services (112 or 911) directly.")
+    elif page in ("Emergency Contacts", "Emergency SOS"):
+        render_emergency_view(user)
 
     render_clinical_disclaimer()
